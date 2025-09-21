@@ -1,0 +1,124 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>阅读器</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+    />
+  </head>
+  <body class="bg-white h-full">
+    <!-- 顶部工具栏 -->
+    <div class="bg-white shadow-sm border-b border-gray-200">
+      <div class="max-w-7xl mx-auto px-6 py-3">
+        <div class="flex items-center justify-between">
+          <div class="flex items-center space-x-4">
+            <button class="p-2 text-gray-600 hover:text-gray-800">
+              <i class="fas fa-arrow-left text-lg"></i>
+            </button>
+            <div class="flex items-center space-x-2">
+              <h1 class="text-lg font-semibold text-gray-800">斗破苍穹</h1>
+              <span class="text-sm text-gray-500">第 156 章</span>
+            </div>
+          </div>
+          <div class="flex items-center space-x-4">
+            <button class="p-2 text-gray-600 hover:text-gray-800" title="目录">
+              <i class="fas fa-list text-lg"></i>
+            </button>
+            <button class="p-2 text-gray-600 hover:text-gray-800" title="书签">
+              <i class="fas fa-bookmark text-lg"></i>
+            </button>
+            <button class="p-2 text-gray-600 hover:text-gray-800" title="字体设置">
+              <i class="fas fa-font text-lg"></i>
+            </button>
+            <button class="p-2 text-gray-600 hover:text-gray-800" title="夜间模式">
+              <i class="fas fa-moon text-lg"></i>
+            </button>
+            <button class="p-2 text-gray-600 hover:text-gray-800" title="阅读模式">
+              <i class="fas fa-columns text-lg"></i>
+            </button>
+            <button class="p-2 text-gray-600 hover:text-gray-800" title="设置">
+              <i class="fas fa-cog text-lg"></i>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 阅读内容区域 -->
+    <div class="max-w-4xl mx-auto px-6 py-8">
+      <!-- 章节标题 -->
+      <h1 class="text-2xl font-bold text-gray-800 mb-8 text-center">第一百五十六章 炼药师大会</h1>
+
+      <!-- 正文内容 -->
+      <div class="prose prose-lg max-w-none">
+        <div class="text-gray-800 leading-relaxed space-y-6 text-lg">
+          <p>
+            萧炎站在炼药师大会的会场中央，感受着周围无数道目光的注视。这是他第一次参加如此盛大的炼药师大会，心中既紧张又兴奋。会场内人声鼎沸，来自各个势力的炼药师们汇聚一堂，有的在低声交谈，有的在检查自己的炼药器具，还有的在闭目养神，调整状态。
+          </p>
+
+          <p>
+            "萧炎，这次大会的竞争将会非常激烈。"药老的声音在萧炎心中响起，"你要小心应对，不要大意。"
+          </p>
+
+          <p>
+            萧炎点了点头，目光扫过会场。他看到了许多熟悉的面孔，也看到了许多陌生的强者。这些炼药师中，不乏一些在炼药界享有盛名的人物。突然，会场内响起了一阵骚动。萧炎抬头望去，只见一位身穿白色长袍的老者缓缓走上了主席台。这位老者正是炼药师公会的会长，也是这次大会的主持人。
+          </p>
+
+          <p>
+            "各位炼药师，欢迎参加本届炼药师大会。"老者的声音虽然不大，但却清晰地传遍了整个会场，"本次大会将分为三个阶段进行。第一阶段是基础理论测试，第二阶段是实际操作，第三阶段则是最终的决赛。"
+          </p>
+
+          <p>
+            萧炎仔细聆听着大会的规则，心中默默记下每一个细节。他知道，这些规则将直接影响到他在大会中的表现。作为药老的弟子，他必须在这个舞台上展现出自己的实力，不辜负师父的期望。
+          </p>
+
+          <p>
+            会场内的气氛越来越紧张，每个炼药师都在为即将到来的挑战做着最后的准备。萧炎深吸一口气，调整好自己的心态，准备迎接这场前所未有的考验。
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <!-- 底部工具栏 -->
+    <div class="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 shadow-lg">
+      <div class="max-w-7xl mx-auto px-6 py-4">
+        <div class="flex items-center justify-between">
+          <!-- 上一章按钮 -->
+          <button
+            class="flex items-center space-x-2 px-6 py-2 bg-gray-100 rounded-lg text-gray-700 hover:bg-gray-200 transition-colors"
+          >
+            <i class="fas fa-chevron-left"></i>
+            <span>上一章</span>
+          </button>
+
+          <!-- 阅读进度 -->
+          <div class="flex items-center space-x-4">
+            <div class="text-sm text-gray-600">
+              <span>第 156 章</span>
+              <span class="mx-2">•</span>
+              <span>75%</span>
+            </div>
+            <div class="w-32 h-2 bg-gray-200 rounded-full">
+              <div class="w-3/4 h-full bg-blue-500 rounded-full"></div>
+            </div>
+          </div>
+
+          <!-- 下一章按钮 -->
+          <button
+            class="flex items-center space-x-2 px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+          >
+            <span>下一章</span>
+            <i class="fas fa-chevron-right"></i>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 底部占位 -->
+    <div class="h-20"></div>
+  </body>
+</html>

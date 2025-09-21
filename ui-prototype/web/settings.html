@@ -1,0 +1,276 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>设置</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+    />
+  </head>
+  <body class="bg-gray-50 h-full">
+    <!-- 顶部导航栏 -->
+    <div class="bg-white shadow-sm border-b border-gray-200">
+      <div class="max-w-7xl mx-auto px-6 py-4">
+        <div class="flex items-center justify-between">
+          <div class="flex items-center space-x-8">
+            <button class="p-2 text-gray-600 hover:text-gray-800">
+              <i class="fas fa-arrow-left text-lg"></i>
+            </button>
+            <h1 class="text-2xl font-bold text-gray-800">设置</h1>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 设置内容 -->
+    <div class="max-w-4xl mx-auto px-6 py-8">
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <!-- 左侧导航 -->
+        <div class="lg:col-span-1">
+          <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+            <nav class="space-y-2">
+              <a
+                href="#"
+                class="flex items-center space-x-3 px-3 py-2 bg-blue-50 text-blue-600 rounded-lg"
+              >
+                <i class="fas fa-font w-5"></i>
+                <span>阅读设置</span>
+              </a>
+              <a
+                href="#"
+                class="flex items-center space-x-3 px-3 py-2 text-gray-600 hover:bg-gray-50 rounded-lg"
+              >
+                <i class="fas fa-palette w-5"></i>
+                <span>主题设置</span>
+              </a>
+              <a
+                href="#"
+                class="flex items-center space-x-3 px-3 py-2 text-gray-600 hover:bg-gray-50 rounded-lg"
+              >
+                <i class="fas fa-cog w-5"></i>
+                <span>其他设置</span>
+              </a>
+              <a
+                href="#"
+                class="flex items-center space-x-3 px-3 py-2 text-gray-600 hover:bg-gray-50 rounded-lg"
+              >
+                <i class="fas fa-info-circle w-5"></i>
+                <span>关于</span>
+              </a>
+            </nav>
+          </div>
+        </div>
+
+        <!-- 右侧设置内容 -->
+        <div class="lg:col-span-2 space-y-6">
+          <!-- 阅读设置 -->
+          <div class="bg-white rounded-lg shadow-sm border border-gray-200">
+            <div class="px-6 py-4 border-b border-gray-100">
+              <h3 class="text-lg font-semibold text-gray-800">阅读设置</h3>
+            </div>
+            <div class="p-6 space-y-6">
+              <!-- 字体大小 -->
+              <div class="flex items-center justify-between">
+                <div class="flex items-center space-x-3">
+                  <i class="fas fa-font text-gray-600 w-5"></i>
+                  <span class="text-gray-800">字体大小</span>
+                </div>
+                <div class="flex items-center space-x-3">
+                  <button
+                    class="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center hover:bg-gray-300"
+                  >
+                    <i class="fas fa-minus text-sm"></i>
+                  </button>
+                  <span class="w-12 text-center text-lg font-medium">16px</span>
+                  <button
+                    class="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center hover:bg-gray-300"
+                  >
+                    <i class="fas fa-plus text-sm"></i>
+                  </button>
+                </div>
+              </div>
+
+              <!-- 行间距 -->
+              <div class="flex items-center justify-between">
+                <div class="flex items-center space-x-3">
+                  <i class="fas fa-arrows-alt-v text-gray-600 w-5"></i>
+                  <span class="text-gray-800">行间距</span>
+                </div>
+                <div class="flex items-center space-x-3">
+                  <button
+                    class="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center hover:bg-gray-300"
+                  >
+                    <i class="fas fa-minus text-sm"></i>
+                  </button>
+                  <span class="w-12 text-center text-lg font-medium">1.5</span>
+                  <button
+                    class="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center hover:bg-gray-300"
+                  >
+                    <i class="fas fa-plus text-sm"></i>
+                  </button>
+                </div>
+              </div>
+
+              <!-- 阅读模式 -->
+              <div class="flex items-center justify-between">
+                <div class="flex items-center space-x-3">
+                  <i class="fas fa-columns text-gray-600 w-5"></i>
+                  <span class="text-gray-800">阅读模式</span>
+                </div>
+                <div class="flex items-center space-x-2">
+                  <button class="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm">单列</button>
+                  <button
+                    class="px-4 py-2 bg-gray-200 text-gray-600 rounded-lg text-sm hover:bg-gray-300"
+                  >
+                    双列
+                  </button>
+                </div>
+              </div>
+
+              <!-- 夜间模式 -->
+              <div class="flex items-center justify-between">
+                <div class="flex items-center space-x-3">
+                  <i class="fas fa-moon text-gray-600 w-5"></i>
+                  <span class="text-gray-800">夜间模式</span>
+                </div>
+                <div class="relative">
+                  <input type="checkbox" class="sr-only" id="night-mode" />
+                  <label
+                    for="night-mode"
+                    class="block w-14 h-7 bg-gray-300 rounded-full cursor-pointer transition-colors"
+                  >
+                    <span
+                      class="block w-6 h-6 bg-white rounded-full shadow transform transition-transform duration-200 ease-in-out translate-x-0.5 translate-y-0.5"
+                    ></span>
+                  </label>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- 主题设置 -->
+          <div class="bg-white rounded-lg shadow-sm border border-gray-200">
+            <div class="px-6 py-4 border-b border-gray-100">
+              <h3 class="text-lg font-semibold text-gray-800">主题设置</h3>
+            </div>
+            <div class="p-6">
+              <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div
+                  class="aspect-square bg-white border-2 border-blue-500 rounded-lg flex items-center justify-center cursor-pointer"
+                >
+                  <span class="text-sm text-gray-600 font-medium">默认</span>
+                </div>
+                <div
+                  class="aspect-square bg-yellow-50 border-2 border-gray-200 rounded-lg flex items-center justify-center cursor-pointer hover:border-yellow-400"
+                >
+                  <span class="text-sm text-gray-600 font-medium">护眼</span>
+                </div>
+                <div
+                  class="aspect-square bg-gray-800 border-2 border-gray-200 rounded-lg flex items-center justify-center cursor-pointer hover:border-gray-600"
+                >
+                  <span class="text-sm text-white font-medium">夜间</span>
+                </div>
+                <div
+                  class="aspect-square bg-green-50 border-2 border-gray-200 rounded-lg flex items-center justify-center cursor-pointer hover:border-green-400"
+                >
+                  <span class="text-sm text-gray-600 font-medium">绿色</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- 其他设置 -->
+          <div class="bg-white rounded-lg shadow-sm border border-gray-200">
+            <div class="px-6 py-4 border-b border-gray-100">
+              <h3 class="text-lg font-semibold text-gray-800">其他设置</h3>
+            </div>
+            <div class="p-6 space-y-6">
+              <div class="flex items-center justify-between">
+                <div class="flex items-center space-x-3">
+                  <i class="fas fa-save text-gray-600 w-5"></i>
+                  <span class="text-gray-800">自动保存阅读进度</span>
+                </div>
+                <div class="relative">
+                  <input type="checkbox" class="sr-only" id="auto-save" checked />
+                  <label
+                    for="auto-save"
+                    class="block w-14 h-7 bg-blue-600 rounded-full cursor-pointer transition-colors"
+                  >
+                    <span
+                      class="block w-6 h-6 bg-white rounded-full shadow transform transition-transform duration-200 ease-in-out translate-x-7 translate-y-0.5"
+                    ></span>
+                  </label>
+                </div>
+              </div>
+
+              <div class="flex items-center justify-between">
+                <div class="flex items-center space-x-3">
+                  <i class="fas fa-volume-up text-gray-600 w-5"></i>
+                  <span class="text-gray-800">翻页音效</span>
+                </div>
+                <div class="relative">
+                  <input type="checkbox" class="sr-only" id="sound" />
+                  <label
+                    for="sound"
+                    class="block w-14 h-7 bg-gray-300 rounded-full cursor-pointer transition-colors"
+                  >
+                    <span
+                      class="block w-6 h-6 bg-white rounded-full shadow transform transition-transform duration-200 ease-in-out translate-x-0.5 translate-y-0.5"
+                    ></span>
+                  </label>
+                </div>
+              </div>
+
+              <div class="flex items-center justify-between">
+                <div class="flex items-center space-x-3">
+                  <i class="fas fa-share text-gray-600 w-5"></i>
+                  <span class="text-gray-800">分享功能</span>
+                </div>
+                <div class="relative">
+                  <input type="checkbox" class="sr-only" id="share" checked />
+                  <label
+                    for="share"
+                    class="block w-14 h-7 bg-blue-600 rounded-full cursor-pointer transition-colors"
+                  >
+                    <span
+                      class="block w-6 h-6 bg-white rounded-full shadow transform transition-transform duration-200 ease-in-out translate-x-7 translate-y-0.5"
+                    ></span>
+                  </label>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- 关于 -->
+          <div class="bg-white rounded-lg shadow-sm border border-gray-200">
+            <div class="px-6 py-4 border-b border-gray-100">
+              <h3 class="text-lg font-semibold text-gray-800">关于</h3>
+            </div>
+            <div class="p-6 space-y-4">
+              <div class="flex items-center justify-between">
+                <span class="text-gray-600">版本</span>
+                <span class="text-gray-800 font-medium">1.0.0</span>
+              </div>
+              <div class="flex items-center justify-between">
+                <span class="text-gray-600">开发者</span>
+                <span class="text-gray-800 font-medium">Novel Reader Team</span>
+              </div>
+              <div class="flex items-center justify-between">
+                <span class="text-gray-600">构建时间</span>
+                <span class="text-gray-800 font-medium">2024-01-15</span>
+              </div>
+              <button
+                class="w-full text-left py-3 px-4 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 transition-colors"
+              >
+                <i class="fas fa-download mr-2"></i>检查更新
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </body>
+</html>

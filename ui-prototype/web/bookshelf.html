@@ -1,0 +1,215 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>书架</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+    />
+  </head>
+  <body class="bg-gray-50 h-full">
+    <!-- 顶部导航栏 -->
+    <div class="bg-white shadow-sm border-b border-gray-200">
+      <div class="max-w-7xl mx-auto px-6 py-4">
+        <div class="flex items-center justify-between">
+          <div class="flex items-center space-x-8">
+            <h1 class="text-2xl font-bold text-gray-800">我的书架</h1>
+            <div class="flex items-center space-x-4">
+              <button
+                class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+              >
+                <i class="fas fa-plus mr-2"></i>导入图书
+              </button>
+              <button
+                class="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+              >
+                <i class="fas fa-search mr-2"></i>搜索
+              </button>
+            </div>
+          </div>
+          <div class="flex items-center space-x-4">
+            <button class="p-2 text-gray-600 hover:text-gray-800">
+              <i class="fas fa-th-large text-lg"></i>
+            </button>
+            <button class="p-2 text-gray-600 hover:text-gray-800">
+              <i class="fas fa-list text-lg"></i>
+            </button>
+            <button class="p-2 text-gray-600 hover:text-gray-800">
+              <i class="fas fa-cog text-lg"></i>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 统计信息栏 -->
+    <div class="bg-white border-b border-gray-100">
+      <div class="max-w-7xl mx-auto px-6 py-4">
+        <div class="flex items-center justify-between">
+          <div class="flex items-center space-x-8 text-sm text-gray-600">
+            <span>共 3 本书</span>
+            <span>最近阅读：斗破苍穹</span>
+            <span>总阅读时长：12小时30分钟</span>
+          </div>
+          <div class="flex items-center space-x-4">
+            <select class="px-3 py-1 border border-gray-300 rounded text-sm">
+              <option>按添加时间</option>
+              <option>按阅读进度</option>
+              <option>按书名</option>
+            </select>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 主要内容区域 -->
+    <div class="max-w-7xl mx-auto px-6 py-8">
+      <!-- 图书网格 -->
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+        <!-- 图书卡片 1 -->
+        <div
+          class="bg-white rounded-lg shadow-sm border border-gray-200 hover:shadow-md transition-shadow cursor-pointer"
+        >
+          <div class="p-6">
+            <div class="flex items-center justify-center mb-4">
+              <div
+                class="w-24 h-32 bg-gradient-to-br from-blue-400 to-blue-600 rounded-lg flex items-center justify-center"
+              >
+                <i class="fas fa-book text-white text-3xl"></i>
+              </div>
+            </div>
+            <div class="text-center">
+              <h3 class="font-semibold text-gray-800 mb-1">斗破苍穹</h3>
+              <p class="text-sm text-gray-600 mb-3">天蚕土豆</p>
+              <div class="mb-3">
+                <div class="flex items-center justify-between text-xs text-gray-500 mb-1">
+                  <span>第 156 章</span>
+                  <span>75%</span>
+                </div>
+                <div class="w-full h-2 bg-gray-200 rounded-full">
+                  <div class="w-3/4 h-full bg-blue-500 rounded-full"></div>
+                </div>
+              </div>
+              <div class="flex items-center justify-center space-x-2">
+                <button class="px-3 py-1 bg-blue-600 text-white rounded text-sm hover:bg-blue-700">
+                  继续阅读
+                </button>
+                <button class="p-1 text-gray-400 hover:text-gray-600">
+                  <i class="fas fa-ellipsis-v"></i>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 图书卡片 2 -->
+        <div
+          class="bg-white rounded-lg shadow-sm border border-gray-200 hover:shadow-md transition-shadow cursor-pointer"
+        >
+          <div class="p-6">
+            <div class="flex items-center justify-center mb-4">
+              <div
+                class="w-24 h-32 bg-gradient-to-br from-green-400 to-green-600 rounded-lg flex items-center justify-center"
+              >
+                <i class="fas fa-book text-white text-3xl"></i>
+              </div>
+            </div>
+            <div class="text-center">
+              <h3 class="font-semibold text-gray-800 mb-1">完美世界</h3>
+              <p class="text-sm text-gray-600 mb-3">辰东</p>
+              <div class="mb-3">
+                <div class="flex items-center justify-between text-xs text-gray-500 mb-1">
+                  <span>第 89 章</span>
+                  <span>50%</span>
+                </div>
+                <div class="w-full h-2 bg-gray-200 rounded-full">
+                  <div class="w-1/2 h-full bg-green-500 rounded-full"></div>
+                </div>
+              </div>
+              <div class="flex items-center justify-center space-x-2">
+                <button class="px-3 py-1 bg-blue-600 text-white rounded text-sm hover:bg-blue-700">
+                  继续阅读
+                </button>
+                <button class="p-1 text-gray-400 hover:text-gray-600">
+                  <i class="fas fa-ellipsis-v"></i>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 图书卡片 3 -->
+        <div
+          class="bg-white rounded-lg shadow-sm border border-gray-200 hover:shadow-md transition-shadow cursor-pointer"
+        >
+          <div class="p-6">
+            <div class="flex items-center justify-center mb-4">
+              <div
+                class="w-24 h-32 bg-gradient-to-br from-purple-400 to-purple-600 rounded-lg flex items-center justify-center"
+              >
+                <i class="fas fa-book text-white text-3xl"></i>
+              </div>
+            </div>
+            <div class="text-center">
+              <h3 class="font-semibold text-gray-800 mb-1">遮天</h3>
+              <p class="text-sm text-gray-600 mb-3">辰东</p>
+              <div class="mb-3">
+                <div class="flex items-center justify-between text-xs text-gray-500 mb-1">
+                  <span>第 23 章</span>
+                  <span>25%</span>
+                </div>
+                <div class="w-full h-2 bg-gray-200 rounded-full">
+                  <div class="w-1/4 h-full bg-purple-500 rounded-full"></div>
+                </div>
+              </div>
+              <div class="flex items-center justify-center space-x-2">
+                <button class="px-3 py-1 bg-blue-600 text-white rounded text-sm hover:bg-blue-700">
+                  继续阅读
+                </button>
+                <button class="p-1 text-gray-400 hover:text-gray-600">
+                  <i class="fas fa-ellipsis-v"></i>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 添加新书卡片 -->
+        <div
+          class="bg-white rounded-lg shadow-sm border-2 border-dashed border-gray-300 hover:border-blue-400 transition-colors cursor-pointer"
+        >
+          <div class="p-6 h-full flex items-center justify-center">
+            <div class="text-center">
+              <div
+                class="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-3"
+              >
+                <i class="fas fa-plus text-2xl text-gray-400"></i>
+              </div>
+              <p class="text-gray-500 font-medium">添加新书</p>
+              <p class="text-sm text-gray-400 mt-1">点击导入图书</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 空状态提示 -->
+      <div class="text-center py-12 hidden">
+        <div
+          class="w-24 h-24 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4"
+        >
+          <i class="fas fa-book text-3xl text-gray-400"></i>
+        </div>
+        <h3 class="text-lg font-medium text-gray-800 mb-2">书架空空如也</h3>
+        <p class="text-gray-500 mb-6">还没有导入任何图书，点击上方按钮开始添加吧</p>
+        <button
+          class="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+        >
+          <i class="fas fa-plus mr-2"></i>导入第一本书
+        </button>
+      </div>
+    </div>
+  </body>
+</html>

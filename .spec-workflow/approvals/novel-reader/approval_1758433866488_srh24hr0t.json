@@ -1,0 +1,39 @@
+{
+  "id": "approval_1758433866488_srh24hr0t",
+  "title": "小说阅读器应用需求规格",
+  "filePath": ".spec-workflow/specs/novel-reader/requirements.md",
+  "type": "document",
+  "status": "needs-revision",
+  "createdAt": "2025-09-21T05:51:06.488Z",
+  "category": "spec",
+  "categoryName": "novel-reader",
+  "response": "Feedback Summary (2 comments):\n\nSpecific Text Comments:\n1. \"shadcn/ui for components\": 注意主题\n2. \"支持富文本和图片\": 后续考虑使用原图片通过大模型接口生成的视频替代图片\n",
+  "annotations": "{\n  \"decision\": \"needs-revision\",\n  \"comments\": [\n    {\n      \"type\": \"selection\",\n      \"comment\": \"注意主题\",\n      \"timestamp\": \"2025-09-21T06:02:00.116Z\",\n      \"selectedText\": \"shadcn/ui for components\",\n      \"highlightColor\": {\n        \"bg\": \"rgba(255, 235, 59, 0.3)\",\n        \"border\": \"#FFEB3B\",\n        \"name\": \"#ffeb3b\"\n      },\n      \"id\": \"comment_1758434520116_aev67hhjv\"\n    },\n    {\n      \"type\": \"selection\",\n      \"comment\": \"后续考虑使用原图片通过大模型接口生成的视频替代图片\",\n      \"timestamp\": \"2025-09-21T06:02:53.533Z\",\n      \"selectedText\": \"支持富文本和图片\",\n      \"highlightColor\": {\n        \"bg\": \"rgba(255, 235, 59, 0.3)\",\n        \"border\": \"#FFEB3B\",\n        \"name\": \"#ffeb3b\"\n      },\n      \"id\": \"comment_1758434573533_wnr17q6jy\"\n    }\n  ],\n  \"summary\": \"Feedback Summary (2 comments):\\n\\nSpecific Text Comments:\\n1. \\\"shadcn/ui for components\\\": 注意主题\\n2. \\\"支持富文本和图片\\\": 后续考虑使用原图片通过大模型接口生成的视频替代图片\\n\",\n  \"timestamp\": \"2025-09-21T06:02:57.291Z\"\n}",
+  "respondedAt": "2025-09-21T06:02:57.599Z",
+  "comments": [
+    {
+      "type": "selection",
+      "comment": "注意主题",
+      "timestamp": "2025-09-21T06:02:00.116Z",
+      "selectedText": "shadcn/ui for components",
+      "highlightColor": {
+        "bg": "rgba(255, 235, 59, 0.3)",
+        "border": "#FFEB3B",
+        "name": "#ffeb3b"
+      },
+      "id": "comment_1758434520116_aev67hhjv"
+    },
+    {
+      "type": "selection",
+      "comment": "后续考虑使用原图片通过大模型接口生成的视频替代图片",
+      "timestamp": "2025-09-21T06:02:53.533Z",
+      "selectedText": "支持富文本和图片",
+      "highlightColor": {
+        "bg": "rgba(255, 235, 59, 0.3)",
+        "border": "#FFEB3B",
+        "name": "#ffeb3b"
+      },
+      "id": "comment_1758434573533_wnr17q6jy"
+    }
+  ]
+}
