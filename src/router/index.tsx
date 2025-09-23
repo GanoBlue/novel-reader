@@ -1,11 +1,11 @@
-import { createBrowserRouter } from 'react-router-dom'
-import Home from '@/pages/Home'
-import { lazy, Suspense } from 'react'
-import { LoadingSpinner } from '@/components/LoadingSpinner'
+import { createBrowserRouter } from 'react-router-dom';
+import Home from '@/pages/Home';
+import { lazy, Suspense } from 'react';
+import { LoadingSpinner } from '@/components/LoadingSpinner';
 
 // 懒加载页面组件
-const Library = lazy(() => import('@/pages/Library'))
-const Favorites = lazy(() => import('@/pages/Favorites'))
+const Library = lazy(() => import('@/pages/Library'));
+const Favorites = lazy(() => import('@/pages/Favorites'));
 
 const router = createBrowserRouter([
   {
@@ -39,5 +39,5 @@ const router = createBrowserRouter([
       },
     ],
   },
-])
-export { router }
+]);
+export { router };

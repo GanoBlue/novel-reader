@@ -3,7 +3,8 @@ import { Plus, Search, Settings, Grid, List, Heart } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { BookCard } from '@/components/BookCard';
 import { useBooks, type PageType } from '@/hooks/use-books';
-import { Upload, message } from 'antd';
+import { Upload } from 'antd';
+import { toast } from 'sonner';
 import type { UploadProps } from 'antd';
 
 interface BookPageProps {
@@ -32,9 +33,14 @@ const pageConfig = {
 
 export function BookPage({ pageType }: BookPageProps) {
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
-  const { books, toggleFavorite, handleRead, handleSettings, allBooks } = useBooks({
+  const { books, allBooks, toggleFavorite, handleRead, handleSettings, addBook } = useBooks({
     pageType,
   });
+
+  // 统计信息计算
+  const totalBooks = pageType === 'library' ? allBooks.length : books.length;
+  const totalFavorites = allBooks.filter((book) => book.isFavorite).length;
+  const recentRead = allBooks.filter((book) => book.lastRead).length;
   const config = pageConfig[pageType];
 
   // 处理收藏/取消收藏
@@ -45,51 +51,53 @@ export function BookPage({ pageType }: BookPageProps) {
     [toggleFavorite],
   );
 
-  // 统计信息
-  const totalBooks = pageType === 'library' ? allBooks.length : books.length;
-  const totalFavorites = allBooks.filter((book) => book.isFavorite).length;
-  const recentRead = allBooks.filter((book) => book.lastRead).length;
+  // 自定义上传处理 - 添加到zustand store
+  const customRequest: UploadProps['customRequest'] = useCallback(
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (options: any) => {
+      const { file, onSuccess, onError } = options;
 
-  // 自定义上传处理 - 直接保存到 localStorage
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const customRequest: UploadProps['customRequest'] = useCallback((options: any) => {
-    const { file, onSuccess, onError } = options;
+      try {
+        // 验证文件格式
+        const fileName = (file as File).name;
+        const extension = fileName.toLowerCase().split('.').pop();
 
-    try {
-      // 验证文件格式
-      const fileName = (file as File).name;
-      const extension = fileName.toLowerCase().split('.').pop();
+        if (extension !== 'txt' && extension !== 'epub') {
+          toast.error(`文件 ${fileName} 格式不支持，请选择 .txt 或 .epub 格式的文件`);
+          onError?.(new Error('文件格式不支持'));
+          return;
+        }
 
-      if (extension !== 'txt' && extension !== 'epub') {
-        message.error(`文件 ${fileName} 格式不支持，请选择 .txt 或 .epub 格式的文件`);
-        onError?.(new Error('文件格式不支持'));
-        return;
+        // 创建新书籍对象并添加到zustand store
+        const newBook = {
+          id: Date.now(), // 使用时间戳作为ID
+          title: fileName.replace(/\.(txt|epub)$/i, ''), // 移除文件扩展名作为标题
+          author: '未知作者', // 默认作者
+          cover: `from-${['blue', 'green', 'purple', 'red', 'yellow'][Math.floor(Math.random() * 5)]}-400 to-${['blue', 'green', 'purple', 'red', 'yellow'][Math.floor(Math.random() * 5)]}-600`, // 随机封面颜色
+          currentChapter: 1,
+          totalChapters: 1,
+          progress: 0,
+          lastRead: new Date().toISOString().split('T')[0],
+          totalTime: 0,
+          readCount: 0,
+          isFavorite: false,
+        };
+
+        // 添加到zustand store
+        addBook(newBook);
+
+        // 模拟上传延迟
+        setTimeout(() => {
+          toast.success(`${fileName} 导入成功！`);
+          onSuccess?.(newBook);
+        }, 500);
+      } catch (error) {
+        toast.error('导入失败，请重试');
+        onError?.(error as Error);
       }
-
-      // 保存文件信息到 localStorage
-      const fileData = {
-        id: Date.now().toString() + Math.random().toString(36).substr(2, 9),
-        name: fileName,
-        size: (file as File).size,
-        type: extension,
-        uploadTime: new Date().toISOString(),
-      };
-
-      // 获取现有的文件列表
-      const existingFiles = JSON.parse(localStorage.getItem('uploadedBooks') || '[]');
-      existingFiles.push(fileData);
-      localStorage.setItem('uploadedBooks', JSON.stringify(existingFiles));
-
-      // 模拟上传延迟
-      setTimeout(() => {
-        message.success(`${fileName} 导入成功！`);
-        onSuccess?.(fileData);
-      }, 500);
-    } catch (error) {
-      message.error('导入失败，请重试');
-      onError?.(error as Error);
-    }
-  }, []);
+    },
+    [addBook],
+  );
 
   // 上传前的验证
   const beforeUpload = useCallback((file: File) => {
@@ -97,13 +105,13 @@ export function BookPage({ pageType }: BookPageProps) {
     const isValidFormat = extension === 'txt' || extension === 'epub';
 
     if (!isValidFormat) {
-      message.error('只支持 .txt 和 .epub 格式的文件！');
+      toast.error('只支持 .txt 和 .epub 格式的文件！');
       return false;
     }
 
     const isLt50M = file.size / 1024 / 1024 < 50;
     if (!isLt50M) {
-      message.error('文件大小不能超过 50MB！');
+      toast.error('文件大小不能超过 50MB！');
       return false;
     }
 
@@ -111,13 +119,13 @@ export function BookPage({ pageType }: BookPageProps) {
   }, []);
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-2">
       {/* 顶部导航栏 */}
-      <div className="bg-white border-b border-gray-200">
-        <div className="max-w-7xl mx-auto px-6 py-4">
+      <div className="border-b border-border">
+        <div className="mx-auto px-6 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-8">
-              <h1 className="text-2xl font-bold text-gray-800">{config.title}</h1>
+              <h1 className="text-2xl font-bold text-foreground">{config.title}</h1>
               <div className="flex items-center space-x-4">
                 <Button variant="outline">
                   <Search className="h-4 w-4 mr-2" />
@@ -129,8 +137,7 @@ export function BookPage({ pageType }: BookPageProps) {
                     multiple
                     accept=".txt,.epub"
                     customRequest={customRequest}
-                    beforeUpload={beforeUpload}
-                    showUploadList={{ showPreviewIcon: false, showDownloadIcon: false }}
+                    showUploadList={false}
                   >
                     <Button>
                       <Plus className="h-4 w-4 mr-2" />
@@ -163,35 +170,12 @@ export function BookPage({ pageType }: BookPageProps) {
         </div>
       </div>
 
-      {/* 统计信息栏 */}
-      <div className="bg-white border-b border-gray-100">
-        <div className="max-w-7xl mx-auto px-6 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-8 text-sm text-gray-600">
-              <span>共 {totalBooks} 本图书</span>
-              {pageType === 'library' && (
-                <>
-                  <span>收藏: {totalFavorites}</span>
-                  <span>最近阅读: {recentRead}</span>
-                </>
-              )}
-              {pageType === 'favorites' && (
-                <>
-                  <span>收藏夹：默认收藏夹</span>
-                  <span>最近收藏：{books[0]?.title || '无'}</span>
-                </>
-              )}
-            </div>
-          </div>
-        </div>
-      </div>
-
       {/* 主要内容区域 */}
-      <div className="max-w-7xl mx-auto px-6">
+      <div className="px-6">
         {books.length > 0 ? (
           <>
             {viewMode === 'grid' ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-3">
                 {books.map((book) => (
                   <BookCard
                     key={book.id}
@@ -224,11 +208,11 @@ export function BookPage({ pageType }: BookPageProps) {
         ) : (
           /* 空状态提示 */
           <div className="text-center py-12">
-            <div className="w-24 h-24 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-              <Heart className="text-3xl text-gray-400" />
+            <div className="w-24 h-24 bg-muted rounded-full flex items-center justify-center mx-auto mb-4">
+              <Heart className="text-3xl text-muted-foreground" />
             </div>
-            <h3 className="text-lg font-medium text-gray-800 mb-2">{config.emptyTitle}</h3>
-            <p className="text-gray-500 mb-6">{config.emptyDescription}</p>
+            <h3 className="text-lg font-medium text-foreground mb-2">{config.emptyTitle}</h3>
+            <p className="text-muted-foreground mb-6">{config.emptyDescription}</p>
             {pageType === 'library' && (
               <Upload
                 name="file"
@@ -247,4 +231,3 @@ export function BookPage({ pageType }: BookPageProps) {
     </div>
   );
 }
-
