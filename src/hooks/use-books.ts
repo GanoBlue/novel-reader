@@ -15,6 +15,9 @@ export function useBooks({ pageType }: UseBooksOptions) {
     getBooksByType,
     getBookById,
     batchToggleFavorite,
+    addBooks,
+    addBook,
+    removeBook,
   } = useBookStore()
 
   // 根据页面类型获取书籍
@@ -46,8 +49,12 @@ export function useBooks({ pageType }: UseBooksOptions) {
     handleSettings,
     getBookById, // 暴露这个方法，方便组件获取单本书籍信息
     batchToggleFavorite, // 批量收藏/取消收藏
+    addBooks, // 批量添加书籍
+    addBook, // 添加单本书籍
+    removeBook, // 删除书籍
   }
 }
 
 // 导出类型，方便其他文件使用
 export type { Book, PageType }
+

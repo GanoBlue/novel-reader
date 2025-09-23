@@ -1,14 +1,13 @@
-import { useState, useCallback } from 'react'
-import { useNavigate } from 'react-router-dom'
-import { Plus, Search, Settings, Grid, List, Heart, BookOpen } from 'lucide-react'
-import { Button } from '@/components/ui/button'
-import { Card, CardContent } from '@/components/ui/card'
-import { BookCard } from '@/components/BookCard'
-import { FileUpload } from '@/components/FileUpload'
-import { useBooks, type PageType } from '@/hooks/use-books'
+import { useState, useCallback } from 'react';
+import { Plus, Search, Settings, Grid, List, Heart } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { BookCard } from '@/components/BookCard';
+import { useBooks, type PageType } from '@/hooks/use-books';
+import { Upload, message } from 'antd';
+import type { UploadProps } from 'antd';
 
 interface BookPageProps {
-  pageType: PageType
+  pageType: PageType;
 }
 
 // 页面配置
@@ -29,175 +28,87 @@ const pageConfig = {
     emptyDescription: '还没有收藏任何图书，从书架选择心仪的图书收藏吧',
     emptyButton: '去书架看看',
   },
-} as const
-
-function AddBookCard({
-  displayMode,
-  onFileSelect,
-}: {
-  displayMode?: 'grid' | 'list'
-  onFileSelect?: (files: File[]) => void
-}) {
-  const [isDragOver, setIsDragOver] = useState(false)
-
-  const handleDragOver = useCallback((e: React.DragEvent) => {
-    e.preventDefault()
-    setIsDragOver(true)
-  }, [])
-
-  const handleDragLeave = useCallback((e: React.DragEvent) => {
-    e.preventDefault()
-    setIsDragOver(false)
-  }, [])
-
-  const handleDrop = useCallback(
-    (e: React.DragEvent) => {
-      e.preventDefault()
-      setIsDragOver(false)
-
-      const droppedFiles = Array.from(e.dataTransfer.files).filter(
-        (file) =>
-          file.type === 'text/plain' ||
-          file.type === 'application/epub+zip' ||
-          file.name.endsWith('.txt') ||
-          file.name.endsWith('.epub'),
-      )
-
-      if (droppedFiles.length > 0 && onFileSelect) {
-        onFileSelect(droppedFiles)
-      }
-    },
-    [onFileSelect],
-  )
-
-  const handleClick = useCallback(() => {
-    if (!onFileSelect) return
-
-    // 创建隐藏的文件输入框
-    const input = document.createElement('input')
-    input.type = 'file'
-    input.multiple = true
-    input.accept = '.txt,.epub,text/plain,application/epub+zip'
-
-    input.onchange = async (e) => {
-      const files = Array.from((e.target as HTMLInputElement).files || []).filter(
-        (file) =>
-          file.type === 'text/plain' ||
-          file.type === 'application/epub+zip' ||
-          file.name.endsWith('.txt') ||
-          file.name.endsWith('.epub'),
-      )
-
-      if (files.length > 0) {
-        onFileSelect(files)
-      }
-    }
-
-    input.click()
-  }, [onFileSelect])
-
-  if (displayMode === 'list') {
-    return (
-      <Card
-        className={`border-2 border-dashed transition-colors cursor-pointer ${
-          isDragOver
-            ? 'border-blue-400 bg-blue-50'
-            : 'border-gray-300 hover:border-blue-400 hover:bg-gray-50'
-        }`}
-        onDragOver={handleDragOver}
-        onDragLeave={handleDragLeave}
-        onDrop={handleDrop}
-        onClick={handleClick}
-      >
-        <CardContent className="p-4">
-          <div className="flex items-center justify-center h-16">
-            <div className="text-center">
-              <div className="w-8 h-8 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-2">
-                <BookOpen className="text-sm text-gray-400" />
-              </div>
-              <p className="text-sm text-gray-500 font-medium">
-                {isDragOver ? '释放文件以上传' : '添加新书'}
-              </p>
-              <p className="text-xs text-gray-400 mt-1">
-                {isDragOver ? '支持 TXT 和 EPUB' : '拖拽或点击添加'}
-              </p>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-    )
-  }
-
-  return (
-    <Card
-      className={`border-2 border-dashed transition-colors cursor-pointer ${
-        isDragOver
-          ? 'border-blue-400 bg-blue-50'
-          : 'border-gray-300 hover:border-blue-400 hover:bg-gray-50'
-      }`}
-      onDragOver={handleDragOver}
-      onDragLeave={handleDragLeave}
-      onDrop={handleDrop}
-      onClick={handleClick}
-    >
-      <CardContent className="p-6 h-full flex items-center justify-center">
-        <div className="text-center">
-          <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-3">
-            <Plus className="text-2xl text-gray-400" />
-          </div>
-          <p className="text-gray-500 font-medium">{isDragOver ? '释放文件以上传' : '添加新书'}</p>
-          <p className="text-sm text-gray-400 mt-1">
-            {isDragOver ? '支持 TXT 和 EPUB' : '拖拽或点击添加'}
-          </p>
-        </div>
-      </CardContent>
-    </Card>
-  )
-}
+} as const;
 
 export function BookPage({ pageType }: BookPageProps) {
-  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid')
-  const navigate = useNavigate()
-  const { books, toggleFavorite, handleRead, handleSettings, allBooks } = useBooks({ pageType })
-  const config = pageConfig[pageType]
+  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
+  const { books, toggleFavorite, handleRead, handleSettings, allBooks } = useBooks({
+    pageType,
+  });
+  const config = pageConfig[pageType];
 
   // 处理收藏/取消收藏
   const handleToggleFavorite = useCallback(
     (bookId: number) => {
-      toggleFavorite(bookId)
+      toggleFavorite(bookId);
     },
     [toggleFavorite],
-  )
+  );
 
   // 统计信息
-  const totalBooks = pageType === 'library' ? allBooks.length : books.length
-  const totalFavorites = allBooks.filter((book) => book.isFavorite).length
-  const recentRead = allBooks.filter((book) => book.lastRead).length
+  const totalBooks = pageType === 'library' ? allBooks.length : books.length;
+  const totalFavorites = allBooks.filter((book) => book.isFavorite).length;
+  const recentRead = allBooks.filter((book) => book.lastRead).length;
 
-  // 处理跳转到书架
-  const handleGoToLibrary = useCallback(() => {
-    navigate('/library')
-  }, [navigate])
+  // 自定义上传处理 - 直接保存到 localStorage
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const customRequest: UploadProps['customRequest'] = useCallback((options: any) => {
+    const { file, onSuccess, onError } = options;
 
-  // 处理文件上传成功
-  const handleUploadSuccess = useCallback((files: File[]) => {
-    // 这里可以添加成功提示或其他逻辑
-    console.log('文件上传成功:', files)
-    // 刷新书籍列表
-    window.location.reload()
-  }, [])
+    try {
+      // 验证文件格式
+      const fileName = (file as File).name;
+      const extension = fileName.toLowerCase().split('.').pop();
 
-  const handleUploadError = useCallback((error: string) => {
-    console.error('文件上传错误:', error)
-    // 这里可以显示错误提示
-  }, [])
+      if (extension !== 'txt' && extension !== 'epub') {
+        message.error(`文件 ${fileName} 格式不支持，请选择 .txt 或 .epub 格式的文件`);
+        onError?.(new Error('文件格式不支持'));
+        return;
+      }
 
-  const handleUploadProgress = useCallback(
-    (progress: { fileName: string; progress: number; status: string }[]) => {
-      console.log('上传进度:', progress)
-    },
-    [],
-  )
+      // 保存文件信息到 localStorage
+      const fileData = {
+        id: Date.now().toString() + Math.random().toString(36).substr(2, 9),
+        name: fileName,
+        size: (file as File).size,
+        type: extension,
+        uploadTime: new Date().toISOString(),
+      };
+
+      // 获取现有的文件列表
+      const existingFiles = JSON.parse(localStorage.getItem('uploadedBooks') || '[]');
+      existingFiles.push(fileData);
+      localStorage.setItem('uploadedBooks', JSON.stringify(existingFiles));
+
+      // 模拟上传延迟
+      setTimeout(() => {
+        message.success(`${fileName} 导入成功！`);
+        onSuccess?.(fileData);
+      }, 500);
+    } catch (error) {
+      message.error('导入失败，请重试');
+      onError?.(error as Error);
+    }
+  }, []);
+
+  // 上传前的验证
+  const beforeUpload = useCallback((file: File) => {
+    const extension = file.name.toLowerCase().split('.').pop();
+    const isValidFormat = extension === 'txt' || extension === 'epub';
+
+    if (!isValidFormat) {
+      message.error('只支持 .txt 和 .epub 格式的文件！');
+      return false;
+    }
+
+    const isLt50M = file.size / 1024 / 1024 < 50;
+    if (!isLt50M) {
+      message.error('文件大小不能超过 50MB！');
+      return false;
+    }
+
+    return true;
+  }, []);
 
   return (
     <div className="space-y-6">
@@ -213,10 +124,19 @@ export function BookPage({ pageType }: BookPageProps) {
                   {config.searchPlaceholder}
                 </Button>
                 {config.importButton && (
-                  <Button>
-                    <Plus className="h-4 w-4 mr-2" />
-                    导入图书
-                  </Button>
+                  <Upload
+                    name="file"
+                    multiple
+                    accept=".txt,.epub"
+                    customRequest={customRequest}
+                    beforeUpload={beforeUpload}
+                    showUploadList={{ showPreviewIcon: false, showDownloadIcon: false }}
+                  >
+                    <Button>
+                      <Plus className="h-4 w-4 mr-2" />
+                      导入图书
+                    </Button>
+                  </Upload>
                 )}
               </div>
             </div>
@@ -283,18 +203,6 @@ export function BookPage({ pageType }: BookPageProps) {
                     onSettings={() => handleSettings(book.id)}
                   />
                 ))}
-                {pageType === 'library' && (
-                  <FileUpload
-                    displayMode="grid"
-                    variant="card"
-                    onUploadSuccess={handleUploadSuccess}
-                    onUploadError={handleUploadError}
-                    onUploadProgress={handleUploadProgress}
-                    simulateUpload={true}
-                    uploadSpeed={30} // 30 KB/s
-                    chunkSize={5} // 5 KB
-                  />
-                )}
               </div>
             ) : (
               <div className="space-y-4">
@@ -310,18 +218,6 @@ export function BookPage({ pageType }: BookPageProps) {
                     className="p-4"
                   />
                 ))}
-                {pageType === 'library' && (
-                  <FileUpload
-                    displayMode="list"
-                    variant="card"
-                    onUploadSuccess={handleUploadSuccess}
-                    onUploadError={handleUploadError}
-                    onUploadProgress={handleUploadProgress}
-                    simulateUpload={true}
-                    uploadSpeed={30} // 30 KB/s
-                    chunkSize={5} // 5 KB
-                  />
-                )}
               </div>
             )}
           </>
@@ -333,20 +229,22 @@ export function BookPage({ pageType }: BookPageProps) {
             </div>
             <h3 className="text-lg font-medium text-gray-800 mb-2">{config.emptyTitle}</h3>
             <p className="text-gray-500 mb-6">{config.emptyDescription}</p>
-            <Button
-              className="bg-blue-600 hover:bg-blue-700"
-              onClick={
-                pageType === 'favorites'
-                  ? handleGoToLibrary
-                  : () => console.log('导入图书功能待实现')
-              }
-            >
-              {config.emptyButton}
-            </Button>
+            {pageType === 'library' && (
+              <Upload
+                name="file"
+                multiple
+                accept=".txt,.epub"
+                customRequest={customRequest}
+                beforeUpload={beforeUpload}
+                showUploadList={{ showPreviewIcon: false, showDownloadIcon: false }}
+              >
+                <Button className="bg-blue-600 hover:bg-blue-700">{config.emptyButton}</Button>
+              </Upload>
+            )}
           </div>
         )}
       </div>
     </div>
-  )
+  );
 }
 

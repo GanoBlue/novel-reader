@@ -11,5 +11,8 @@ export default defineConfig({
       '@': path.resolve(__dirname, './src'),
     },
   },
+  server: {
+    open: true, // 自动在浏览器中打开应用
+  },
 })
 

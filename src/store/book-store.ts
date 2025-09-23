@@ -25,6 +25,9 @@ interface BookStore {
   books: Book[]
   toggleFavorite: (bookId: number) => void
   batchToggleFavorite: (bookIds: number[], favorite: boolean) => void
+  addBooks: (newBooks: Book[]) => void
+  addBook: (newBook: Book) => void
+  removeBook: (bookId: number) => void
   getBooksByType: (pageType: PageType) => Book[]
   getBookById: (bookId: number) => Book | undefined
 }
@@ -159,6 +162,58 @@ export const useBookStore = create<BookStore>()(
       return books
     },
 
+    // 添加多本书籍
+    addBooks: (newBooks: Book[]) => {
+      set((state) => {
+        const existingIds = new Set(state.books.map((book) => book.id))
+        const uniqueNewBooks = newBooks.filter((book) => !existingIds.has(book.id))
+
+        if (uniqueNewBooks.length === 0) {
+          console.log('没有新书籍需要添加')
+          return state
+        }
+
+        const updatedBooks = [...state.books, ...uniqueNewBooks]
+        console.log(`成功添加 ${uniqueNewBooks.length} 本新书籍`)
+
+        return { books: updatedBooks }
+      })
+    },
+
+    // 添加单本书籍
+    addBook: (newBook: Book) => {
+      set((state) => {
+        const existingBook = state.books.find((book) => book.id === newBook.id)
+
+        if (existingBook) {
+          console.log('书籍已存在，跳过添加:', newBook.title)
+          return state
+        }
+
+        const updatedBooks = [...state.books, newBook]
+        console.log('成功添加新书籍:', newBook.title)
+
+        return { books: updatedBooks }
+      })
+    },
+
+    // 删除书籍
+    removeBook: (bookId: number) => {
+      set((state) => {
+        const bookToRemove = state.books.find((book) => book.id === bookId)
+
+        if (!bookToRemove) {
+          console.log('要删除的书籍不存在:', bookId)
+          return state
+        }
+
+        const updatedBooks = state.books.filter((book) => book.id !== bookId)
+        console.log('成功删除书籍:', bookToRemove.title)
+
+        return { books: updatedBooks }
+      })
+    },
+
     // 根据ID获取单本书籍
     getBookById: (bookId: number) => {
       const { books } = get()
@@ -166,3 +221,4 @@ export const useBookStore = create<BookStore>()(
     },
   })),
 )
+
