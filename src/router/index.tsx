@@ -6,6 +6,7 @@ import { LoadingSpinner } from '@/components/LoadingSpinner';
 // 懒加载页面组件
 const Library = lazy(() => import('@/pages/Library'));
 const Favorites = lazy(() => import('@/pages/Favorites'));
+const Reader = lazy(() => import('@/pages/Reader'));
 
 const router = createBrowserRouter([
   {
@@ -34,6 +35,14 @@ const router = createBrowserRouter([
         element: (
           <Suspense fallback={<LoadingSpinner />}>
             <Favorites />
+          </Suspense>
+        ),
+      },
+      {
+        path: 'reader/:id',
+        element: (
+          <Suspense fallback={<LoadingSpinner />}>
+            <Reader />
           </Suspense>
         ),
       },

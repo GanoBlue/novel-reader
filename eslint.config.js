@@ -8,6 +8,7 @@ import { defineConfig, globalIgnores } from 'eslint/config';
 export default defineConfig([
   globalIgnores(['dist']),
   {
+    globals: { React: true },
     files: ['**/*.{ts,tsx,js,jsx}'],
     extends: [
       js.configs.recommended,
@@ -83,4 +84,3 @@ export default defineConfig([
     },
   },
 ]);
-

@@ -7,6 +7,7 @@ export const STORAGE_KEYS = {
   SETTINGS: 'novel-reader-settings',
   THEME: 'novel-reader-theme',
   UPLOAD_HISTORY: 'novel-reader-uploads',
+  BOOK_CONTENTS: 'novel-reader-book-contents',
 } as const;
 
 // 存储服务类
@@ -76,6 +77,23 @@ export class StorageService {
     const defaultBooks: Book[] = [];
 
     return this.getItem(STORAGE_KEYS.BOOKS, defaultBooks);
+  }
+
+  // 书籍正文内容（按ID存储，避免与元数据混存，便于独立更新）
+  saveBookContent(bookId: number, content: string): boolean {
+    try {
+      const all = this.getItem<Record<string, string>>(STORAGE_KEYS.BOOK_CONTENTS, {});
+      all[String(bookId)] = content;
+      return this.setItem(STORAGE_KEYS.BOOK_CONTENTS, all);
+    } catch (error) {
+      console.error('保存书籍正文失败:', error);
+      return false;
+    }
+  }
+
+  loadBookContent(bookId: number): string | undefined {
+    const all = this.getItem<Record<string, string>>(STORAGE_KEYS.BOOK_CONTENTS, {});
+    return all[String(bookId)];
   }
 
   // 应用设置存储

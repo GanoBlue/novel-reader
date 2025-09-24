@@ -36,17 +36,11 @@ export function useBooks({ pageType }: UseBooksOptions) {
     console.log('开始阅读图书:', bookId);
   }, []);
 
-  // 设置处理函数
-  const handleSettings = useCallback((bookId: number) => {
-    console.log('打开图书设置:', bookId);
-  }, []);
-
   return {
     books,
     allBooks,
     toggleFavorite: handleToggleFavorite,
     handleRead,
-    handleSettings,
     getBookById, // 暴露这个方法，方便组件获取单本书籍信息
     batchToggleFavorite, // 批量收藏/取消收藏
     addBooks, // 批量添加书籍
