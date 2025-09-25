@@ -24,6 +24,7 @@ export type PageType = 'library' | 'favorites';
 // Store接口定义
 interface BookStore {
   books: Book[];
+  isLoading: boolean; // 添加加载状态
   toggleFavorite: (bookId: number) => void;
   batchToggleFavorite: (bookIds: number[], favorite: boolean) => void;
   addBooks: (newBooks: Book[]) => void;
@@ -31,15 +32,14 @@ interface BookStore {
   removeBook: (bookId: number) => void;
   getBooksByType: (pageType: PageType) => Book[];
   getBookById: (bookId: number) => Book | undefined;
+  initializeBooks: () => Promise<void>; // 添加初始化方法
 }
-
-// 初始化时迁移数据到新存储系统
-storageService.migrateData();
 
 // 创建zustand store
 export const useBookStore = create<BookStore>()(
   immer((set, get) => ({
-    books: storageService.loadBooks(),
+    books: [],
+    isLoading: true,
 
     // 切换收藏状态
     toggleFavorite: (bookId: number) => {
@@ -56,7 +56,7 @@ export const useBookStore = create<BookStore>()(
           return book;
         });
 
-        // 保存到storage service
+        // 保存到 IndexedDB
         storageService.saveBooks(updatedBooks);
 
         return { books: updatedBooks };
@@ -81,7 +81,7 @@ export const useBookStore = create<BookStore>()(
           return book;
         });
 
-        // 保存到storage service
+        // 保存到 IndexedDB
         storageService.saveBooks(updatedBooks);
 
         return { books: updatedBooks };
@@ -114,7 +114,7 @@ export const useBookStore = create<BookStore>()(
         const updatedBooks = [...state.books, ...uniqueNewBooks];
         console.log(`成功添加 ${uniqueNewBooks.length} 本新书籍`);
 
-        // 保存到storage service
+        // 保存到 IndexedDB
         storageService.saveBooks(updatedBooks);
 
         return { books: updatedBooks };
@@ -134,7 +134,7 @@ export const useBookStore = create<BookStore>()(
         const updatedBooks = [...state.books, newBook];
         console.log('成功添加新书籍:', newBook.title);
 
-        // 保存到storage service
+        // 保存到 IndexedDB
         storageService.saveBooks(updatedBooks);
 
         return { books: updatedBooks };
@@ -154,7 +154,7 @@ export const useBookStore = create<BookStore>()(
         const updatedBooks = state.books.filter((book) => book.id !== bookId);
         console.log('成功删除书籍:', bookToRemove.title);
 
-        // 保存到storage service
+        // 保存到 IndexedDB
         storageService.saveBooks(updatedBooks);
 
         return { books: updatedBooks };
@@ -166,5 +166,27 @@ export const useBookStore = create<BookStore>()(
       const { books } = get();
       return books.find((book) => book.id === bookId);
     },
+
+    // 初始化书籍数据 - 从 IndexedDB 异步加载
+    initializeBooks: async () => {
+      set((state) => ({ ...state, isLoading: true }));
+
+      try {
+        // 先执行数据迁移
+        await storageService.migrateData();
+
+        // 从 IndexedDB 加载书籍数据
+        const books = await storageService.loadBooks();
+        set((state) => ({ ...state, books, isLoading: false }));
+
+        console.log(`成功加载 ${books.length} 本书籍`);
+      } catch (error) {
+        console.error('初始化书籍数据失败:', error);
+        set((state) => ({ ...state, books: [], isLoading: false }));
+      }
+    },
   })),
 );
+
+// 应用启动时自动初始化书籍数据
+useBookStore.getState().initializeBooks();

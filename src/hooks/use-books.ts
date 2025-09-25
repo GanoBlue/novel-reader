@@ -11,6 +11,7 @@ export function useBooks({ pageType }: UseBooksOptions) {
   // 从store获取数据和方法
   const {
     books: allBooks,
+    isLoading,
     toggleFavorite,
     getBooksByType,
     getBookById,
@@ -39,6 +40,7 @@ export function useBooks({ pageType }: UseBooksOptions) {
   return {
     books,
     allBooks,
+    isLoading,
     toggleFavorite: handleToggleFavorite,
     handleRead,
     getBookById, // 暴露这个方法，方便组件获取单本书籍信息
@@ -51,3 +53,4 @@ export function useBooks({ pageType }: UseBooksOptions) {
 
 // 导出类型，方便其他文件使用
 export type { Book, PageType };
+

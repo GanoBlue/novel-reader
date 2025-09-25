@@ -1,4 +1,12 @@
-import { createContext, ReactNode, useCallback, useContext, useMemo, useState } from 'react';
+import {
+  createContext,
+  ReactNode,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useState,
+} from 'react';
 import { storageService } from '@/services/storage';
 
 type Lang = 'zh-CN' | 'en-US';
@@ -39,16 +47,16 @@ const enUS: Messages = {
 
 const LANGUAGE_KEY = 'novel-reader-lang';
 
-function getSavedLang(): Lang {
+function getSavedLangSync(): Lang {
   const s = storageService.loadSettings();
   const lang = s[LANGUAGE_KEY] as Lang | undefined;
   return lang ?? DEFAULT_LANG;
 }
 
-function saveLang(lang: Lang) {
-  const s = storageService.loadSettings();
+async function saveLang(lang: Lang) {
+  const s = await storageService.loadSettingsAsync();
   s[LANGUAGE_KEY] = lang;
-  storageService.saveSettings(s);
+  await storageService.saveSettings(s);
 }
 
 const I18nContext = createContext<{
@@ -58,7 +66,16 @@ const I18nContext = createContext<{
 } | null>(null);
 
 export function I18nProvider({ children }: { children: ReactNode }) {
-  const [lang, setLangState] = useState<Lang>(getSavedLang());
+  // 先用同步缓存/默认值渲染，挂载后异步回填真实设置
+  const [lang, setLangState] = useState<Lang>(getSavedLangSync());
+
+  useEffect(() => {
+    (async () => {
+      const settings = await storageService.loadSettingsAsync();
+      const l = (settings[LANGUAGE_KEY] as Lang | undefined) ?? DEFAULT_LANG;
+      setLangState(l);
+    })();
+  }, []);
 
   const messages = useMemo(() => (lang === 'zh-CN' ? zhCN : enUS), [lang]);
 
@@ -81,3 +98,4 @@ export function useI18n() {
 }
 
 export type { Lang };
+

@@ -1,18 +1,17 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { Book } from '@/store/book-store';
+import {
+  saveBooksListDB,
+  loadBooksListDB,
+  type BookMetaRecord,
+  saveSettingsDB,
+  loadSettingsDB,
+} from '@/services/db';
 
-// localStorage键名常量
-export const STORAGE_KEYS = {
-  BOOKS: 'novel-reader-books',
-  SETTINGS: 'novel-reader-settings',
-  THEME: 'novel-reader-theme',
-  UPLOAD_HISTORY: 'novel-reader-uploads',
-  BOOK_CONTENTS: 'novel-reader-book-contents',
-} as const;
-
-// 存储服务类
+// 存储服务类 - 完全基于 IndexedDB，去除 localStorage
 export class StorageService {
   private static instance: StorageService;
+  private settingsCache: Record<string, any> | null = null; // 内存缓存，避免每次都异步查询
 
   static getInstance(): StorageService {
     if (!StorageService.instance) {
@@ -21,92 +20,72 @@ export class StorageService {
     return StorageService.instance;
   }
 
-  // 通用存储方法
-  private setItem<T>(key: string, value: T): boolean {
+  // 书籍数据存储 - 直接写入 IndexedDB
+  async saveBooks(books: Book[]): Promise<boolean> {
     try {
-      localStorage.setItem(key, JSON.stringify(value));
+      await saveBooksListDB(books as unknown as BookMetaRecord[]);
       return true;
     } catch (error) {
-      console.error(`Failed to save to localStorage (${key}):`, error);
+      console.error('保存书籍元数据到 IndexedDB 失败：', error);
       return false;
     }
   }
 
-  // 通用读取方法
-  private getItem<T>(key: string, defaultValue: T): T {
+  // 从 IndexedDB 异步读取全部书籍元数据
+  async loadBooks(): Promise<Book[]> {
     try {
-      const item = localStorage.getItem(key);
-      return item ? JSON.parse(item) : defaultValue;
+      const list = await loadBooksListDB();
+      return (list ?? []) as unknown as Book[];
     } catch (error) {
-      console.error(`Failed to load from localStorage (${key}):`, error);
-      return defaultValue;
+      console.error('从 IndexedDB 读取书籍元数据失败：', error);
+      return [];
     }
   }
 
-  // 清除指定key的数据
-  removeItem(key: string): boolean {
-    try {
-      localStorage.removeItem(key);
-      return true;
-    } catch (error) {
-      console.error(`Failed to remove from localStorage (${key}):`, error);
-      return false;
-    }
-  }
-
-  // 清除所有应用相关数据
-  clearAllAppData(): boolean {
-    try {
-      Object.values(STORAGE_KEYS).forEach((key) => {
-        localStorage.removeItem(key);
-      });
-      console.log('All app data cleared from localStorage');
-      return true;
-    } catch (error) {
-      console.error('Failed to clear app data:', error);
-      return false;
-    }
-  }
-
-  // 书籍数据存储
-  saveBooks(books: Book[]): boolean {
-    return this.setItem(STORAGE_KEYS.BOOKS, books);
-  }
-
-  loadBooks(): Book[] {
-    const defaultBooks: Book[] = [];
-
-    return this.getItem(STORAGE_KEYS.BOOKS, defaultBooks);
-  }
-
-  // 书籍正文内容（按ID存储，避免与元数据混存，便于独立更新）
-  saveBookContent(bookId: number, content: string): boolean {
-    try {
-      const all = this.getItem<Record<string, string>>(STORAGE_KEYS.BOOK_CONTENTS, {});
-      all[String(bookId)] = content;
-      return this.setItem(STORAGE_KEYS.BOOK_CONTENTS, all);
-    } catch (error) {
-      console.error('保存书籍正文失败:', error);
-      return false;
-    }
-  }
-
-  loadBookContent(bookId: number): string | undefined {
-    const all = this.getItem<Record<string, string>>(STORAGE_KEYS.BOOK_CONTENTS, {});
-    return all[String(bookId)];
-  }
-
-  // 应用设置存储
-  saveSettings(settings: Record<string, any>): boolean {
-    return this.setItem(STORAGE_KEYS.SETTINGS, settings);
-  }
-
+  // 设置读写（基于 IndexedDB），并带有轻量内存缓存
   loadSettings(): Record<string, any> {
-    return this.getItem(STORAGE_KEYS.SETTINGS, {});
+    // 尽量同步返回缓存，首次为空时返回空对象；I18n 首次渲染可得到默认值
+    return this.settingsCache ?? {};
   }
 
-  // 数据迁移方法（用于版本升级）
-  migrateData(): void {
+  async loadSettingsAsync(): Promise<Record<string, any>> {
+    try {
+      const s = (await loadSettingsDB()) as Record<string, any>;
+      this.settingsCache = s;
+      return s;
+    } catch (error) {
+      console.error('读取设置失败：', error);
+      this.settingsCache = this.settingsCache ?? {};
+      return this.settingsCache;
+    }
+  }
+
+  async saveSettings(settings: Record<string, any>): Promise<boolean> {
+    try {
+      await saveSettingsDB(settings);
+      this.settingsCache = settings;
+      return true;
+    } catch (error) {
+      console.error('保存设置失败：', error);
+      return false;
+    }
+  }
+
+  // 设置便捷API：读取单个键（同步从缓存读取，不存在返回默认值）
+  getSetting<T = unknown>(key: string, defaultValue: T): T {
+    const s = this.settingsCache ?? {};
+    return (s[key] as T) ?? defaultValue;
+  }
+
+  // 设置便捷API：写入单个键（合并到缓存并异步落盘）
+  async setSetting<T = unknown>(key: string, value: T): Promise<void> {
+    const s = (await this.loadSettingsAsync()) as Record<string, any>;
+    s[key] = value;
+    await this.saveSettings(s);
+  }
+
+  // 数据迁移方法（用于版本升级）- 从 localStorage 迁移到 IndexedDB
+  async migrateData(): Promise<void> {
     try {
       // 检查是否有旧版本数据需要迁移
       const oldBooksKey = 'uploadedBooks';
@@ -114,7 +93,7 @@ export class StorageService {
 
       if (oldBooksData) {
         const oldBooks = JSON.parse(oldBooksData);
-        const currentBooks = this.loadBooks();
+        const currentBooks = await this.loadBooks();
 
         // 将旧数据合并到新数据中
         const mergedBooks = [...currentBooks];
@@ -139,9 +118,9 @@ export class StorageService {
           }
         });
 
-        // 保存合并后的数据
-        this.saveBooks(mergedBooks);
-        console.log('数据迁移完成，已将旧数据合并到新格式');
+        // 保存合并后的数据到 IndexedDB
+        await this.saveBooks(mergedBooks);
+        console.log('数据迁移完成，已将旧数据合并到 IndexedDB');
 
         // 删除旧数据
         localStorage.removeItem(oldBooksKey);
@@ -150,21 +129,8 @@ export class StorageService {
       console.error('数据迁移失败:', error);
     }
   }
-
-  // 检查存储配额
-  checkStorageQuota(): { used: number; quota: number; percentage: number } {
-    try {
-      const used = new Blob(Object.values(localStorage)).size;
-      const quota = 5 * 1024 * 1024; // 假设5MB配额
-      const percentage = Math.round((used / quota) * 100);
-
-      return { used, quota, percentage };
-    } catch (error) {
-      console.error('检查存储配额失败:', error);
-      return { used: 0, quota: 0, percentage: 0 };
-    }
-  }
 }
 
 // 导出便捷方法
 export const storageService = StorageService.getInstance();
+
