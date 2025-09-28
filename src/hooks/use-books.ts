@@ -1,5 +1,7 @@
 import { useCallback } from 'react';
-import { useBookStore, type Book, type PageType } from '@/store/book-store';
+import { useBookStore } from '@/store/book-store';
+import type { Book } from '@/types/book';
+import type { PageType } from '@/types/common';
 
 // 钩子参数类型
 interface UseBooksOptions {
@@ -16,7 +18,6 @@ export function useBooks({ pageType }: UseBooksOptions) {
     getBooksByType,
     getBookById,
     batchToggleFavorite,
-    addBooks,
     addBook,
     removeBook,
   } = useBookStore();
@@ -32,21 +33,14 @@ export function useBooks({ pageType }: UseBooksOptions) {
     [toggleFavorite],
   );
 
-  // 阅读处理函数
-  const handleRead = useCallback((bookId: number) => {
-    console.log('开始阅读图书:', bookId);
-  }, []);
-
   return {
     books,
     allBooks,
     isLoading,
     toggleFavorite: handleToggleFavorite,
-    handleRead,
     getBookById, // 暴露这个方法，方便组件获取单本书籍信息
     batchToggleFavorite, // 批量收藏/取消收藏
-    addBooks, // 批量添加书籍
-    addBook, // 添加单本书籍
+    addBook, // 添加书籍
     removeBook, // 删除书籍
   };
 }

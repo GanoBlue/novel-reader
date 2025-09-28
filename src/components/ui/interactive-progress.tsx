@@ -7,6 +7,7 @@ interface InteractiveProgressProps {
   onValueChange?: (value: number) => void;
   className?: string;
   disabled?: boolean;
+  orientation?: 'horizontal' | 'vertical';
 }
 
 export function InteractiveProgress({
@@ -14,6 +15,7 @@ export function InteractiveProgress({
   onValueChange,
   className,
   disabled = false,
+  orientation = 'horizontal',
 }: InteractiveProgressProps) {
   const [isDragging, setIsDragging] = React.useState(false);
   const progressRef = React.useRef<HTMLDivElement>(null);
@@ -26,11 +28,19 @@ export function InteractiveProgress({
       setIsDragging(true);
 
       const rect = progressRef.current.getBoundingClientRect();
-      const clickX = event.clientX - rect.left;
-      const newValue = Math.max(0, Math.min(100, (clickX / rect.width) * 100));
+      let newValue: number;
+
+      if (orientation === 'vertical') {
+        const clickY = event.clientY - rect.top;
+        newValue = Math.max(0, Math.min(100, (clickY / rect.height) * 100));
+      } else {
+        const clickX = event.clientX - rect.left;
+        newValue = Math.max(0, Math.min(100, (clickX / rect.width) * 100));
+      }
+
       onValueChange(newValue);
     },
-    [disabled, onValueChange],
+    [disabled, onValueChange, orientation],
   );
 
   const handleMouseMove = React.useCallback(
@@ -38,11 +48,19 @@ export function InteractiveProgress({
       if (!isDragging || disabled || !onValueChange || !progressRef.current) return;
 
       const rect = progressRef.current.getBoundingClientRect();
-      const mouseX = event.clientX - rect.left;
-      const newValue = Math.max(0, Math.min(100, (mouseX / rect.width) * 100));
+      let newValue: number;
+
+      if (orientation === 'vertical') {
+        const mouseY = event.clientY - rect.top;
+        newValue = Math.max(0, Math.min(100, (mouseY / rect.height) * 100));
+      } else {
+        const mouseX = event.clientX - rect.left;
+        newValue = Math.max(0, Math.min(100, (mouseX / rect.width) * 100));
+      }
+
       onValueChange(newValue);
     },
-    [isDragging, disabled, onValueChange],
+    [isDragging, disabled, onValueChange, orientation],
   );
 
   const handleMouseUp = React.useCallback(() => {
@@ -60,12 +78,15 @@ export function InteractiveProgress({
     }
   }, [isDragging, handleMouseMove, handleMouseUp]);
 
+  const isVertical = orientation === 'vertical';
+
   return (
     <ProgressPrimitive.Root
       ref={progressRef}
       data-slot="progress"
       className={cn(
-        'bg-primary/20 relative h-2 w-full overflow-hidden rounded-full cursor-pointer',
+        'bg-primary/20 relative overflow-hidden rounded-full cursor-pointer',
+        isVertical ? 'w-2 h-full' : 'h-2 w-full',
         disabled && 'cursor-not-allowed opacity-50',
         className,
       )}
@@ -75,7 +96,11 @@ export function InteractiveProgress({
       <ProgressPrimitive.Indicator
         data-slot="progress-indicator"
         className="bg-primary h-full w-full flex-1 transition-all duration-150 ease-out"
-        style={{ transform: `translateX(-${100 - (value || 0)}%)` }}
+        style={{
+          transform: isVertical
+            ? `translateY(-${100 - (value || 0)}%)`
+            : `translateX(-${100 - (value || 0)}%)`,
+        }}
       />
     </ProgressPrimitive.Root>
   );

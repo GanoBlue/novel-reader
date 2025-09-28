@@ -1,10 +1,19 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card } from '@/components/ui/card';
 import { readingProgressService } from '@/services/reading-progress';
 import { Clock, BookOpen, TrendingUp, Calendar } from 'lucide-react';
 
 export const ReadingStats: React.FC = () => {
-  const stats = readingProgressService.getStats();
+  const [stats, setStats] = useState({
+    totalBooks: 0,
+    totalReadingTime: 0,
+    averageProgress: 0,
+    recentlyRead: [],
+  });
+
+  useEffect(() => {
+    readingProgressService.getStats().then(setStats);
+  }, []);
 
   // 格式化时间
   const formatTime = (seconds: number): string => {
@@ -94,7 +103,7 @@ export const ReadingStats: React.FC = () => {
                   <p className="text-sm font-medium truncate">
                     {book.currentChapter || '未知章节'}
                   </p>
-                  <p className="text-xs text-muted-foreground">进度: {book.progress}%</p>
+                  <p className="text-xs text-muted-foreground">进度: {book.progress || 0}%</p>
                 </div>
                 <div className="text-xs text-muted-foreground">{formatDate(book.lastReadAt)}</div>
               </div>
@@ -118,4 +127,3 @@ export const ReadingStats: React.FC = () => {
     </div>
   );
 };
-

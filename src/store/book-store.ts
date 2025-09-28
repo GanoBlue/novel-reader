@@ -1,25 +1,11 @@
 /* eslint-disable no-unused-vars */
 import { create } from 'zustand';
 import { immer } from 'zustand/middleware/immer';
-import { storageService } from '@/services/storage';
+import storage from '@/services/storage';
 // 书籍类型定义
-export interface Book {
-  id: number;
-  title: string;
-  author: string;
-  cover: string;
-  currentChapter: number;
-  totalChapters: number;
-  progress: number;
-  lastRead?: string;
-  totalTime?: number;
-  readCount?: number;
-  favoriteDate?: string;
-  isFavorite?: boolean;
-}
+import type { Book } from '@/types/book';
 
-// 页面类型定义
-export type PageType = 'library' | 'favorites';
+import type { PageType } from '@/types/common';
 
 // Store接口定义
 interface BookStore {
@@ -27,7 +13,6 @@ interface BookStore {
   isLoading: boolean; // 添加加载状态
   toggleFavorite: (bookId: number) => void;
   batchToggleFavorite: (bookIds: number[], favorite: boolean) => void;
-  addBooks: (newBooks: Book[]) => void;
   addBook: (newBook: Book) => void;
   removeBook: (bookId: number) => void;
   getBooksByType: (pageType: PageType) => Book[];
@@ -56,8 +41,11 @@ export const useBookStore = create<BookStore>()(
           return book;
         });
 
-        // 保存到 IndexedDB
-        storageService.saveBooks(updatedBooks);
+        // 保存到 IndexedDB - 更新单本书籍
+        const updatedBook = updatedBooks.find((book) => book.id === bookId);
+        if (updatedBook) {
+          storage.saveBook(updatedBook).catch(console.error);
+        }
 
         return { books: updatedBooks };
       });
@@ -81,8 +69,12 @@ export const useBookStore = create<BookStore>()(
           return book;
         });
 
-        // 保存到 IndexedDB
-        storageService.saveBooks(updatedBooks);
+        // 保存到 IndexedDB - 批量更新书籍
+        updatedBooks.forEach((book) => {
+          if (bookIds.includes(book.id)) {
+            storage.saveBook(book).catch(console.error);
+          }
+        });
 
         return { books: updatedBooks };
       });
@@ -100,27 +92,6 @@ export const useBookStore = create<BookStore>()(
       return books;
     },
 
-    // 添加多本书籍
-    addBooks: (newBooks: Book[]) => {
-      set((state) => {
-        const existingIds = new Set(state.books.map((book) => book.id));
-        const uniqueNewBooks = newBooks.filter((book) => !existingIds.has(book.id));
-
-        if (uniqueNewBooks.length === 0) {
-          console.log('没有新书籍需要添加');
-          return state;
-        }
-
-        const updatedBooks = [...state.books, ...uniqueNewBooks];
-        console.log(`成功添加 ${uniqueNewBooks.length} 本新书籍`);
-
-        // 保存到 IndexedDB
-        storageService.saveBooks(updatedBooks);
-
-        return { books: updatedBooks };
-      });
-    },
-
     // 添加单本书籍
     addBook: (newBook: Book) => {
       set((state) => {
@@ -134,8 +105,8 @@ export const useBookStore = create<BookStore>()(
         const updatedBooks = [...state.books, newBook];
         console.log('成功添加新书籍:', newBook.title);
 
-        // 保存到 IndexedDB
-        storageService.saveBooks(updatedBooks);
+        // 保存到 IndexedDB - 添加新书籍
+        storage.saveBook(newBook).catch(console.error);
 
         return { books: updatedBooks };
       });
@@ -154,8 +125,8 @@ export const useBookStore = create<BookStore>()(
         const updatedBooks = state.books.filter((book) => book.id !== bookId);
         console.log('成功删除书籍:', bookToRemove.title);
 
-        // 保存到 IndexedDB
-        storageService.saveBooks(updatedBooks);
+        // 保存到 IndexedDB - 删除书籍
+        storage.deleteBook(bookId).catch(console.error);
 
         return { books: updatedBooks };
       });
@@ -172,11 +143,8 @@ export const useBookStore = create<BookStore>()(
       set((state) => ({ ...state, isLoading: true }));
 
       try {
-        // 先执行数据迁移
-        await storageService.migrateData();
-
         // 从 IndexedDB 加载书籍数据
-        const books = await storageService.loadBooks();
+        const books = await storage.getAllBooks();
         set((state) => ({ ...state, books, isLoading: false }));
 
         console.log(`成功加载 ${books.length} 本书籍`);
@@ -190,3 +158,4 @@ export const useBookStore = create<BookStore>()(
 
 // 应用启动时自动初始化书籍数据
 useBookStore.getState().initializeBooks();
+

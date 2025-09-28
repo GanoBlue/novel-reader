@@ -1,21 +1,10 @@
 // 阅读设置服务
 // 负责保存和恢复用户的阅读偏好设置
+// 使用 IndexedDB 存储，支持监听机制
 
-export interface ReadingSettings {
-  fontSize: number;
-  lineHeight: number;
-  theme: 'light' | 'dark' | 'sepia' | 'green';
-  readingMode: 'scroll' | 'flip';
-  autoScroll: boolean;
-  autoScrollSpeed: number;
-  // 新增设置项
-  fontFamily: string;
-  textAlign: 'left' | 'center' | 'justify';
-  marginHorizontal: number;
-  marginVertical: number;
-  brightness: number;
-  contrast: number;
-}
+import config from './config';
+
+import type { ReadingSettings } from '@/types/reading';
 
 // 默认阅读设置
 export const defaultReadingSettings: ReadingSettings = {
@@ -27,56 +16,67 @@ export const defaultReadingSettings: ReadingSettings = {
   autoScrollSpeed: 1,
   fontFamily: 'system-ui',
   textAlign: 'left',
-  marginHorizontal: 20,
-  marginVertical: 20,
-  brightness: 100,
-  contrast: 100,
+  paddingHorizontal: 5,
 };
 
 // 设置键名
-const SETTINGS_KEY = 'novel-reader-settings';
+const SETTINGS_KEY = 'reading-settings';
 
 // 获取阅读设置
-export const getReadingSettings = (): ReadingSettings => {
+export const getReadingSettings = async (): Promise<ReadingSettings> => {
   try {
-    const stored = localStorage.getItem(SETTINGS_KEY);
+    const stored = await config.get(SETTINGS_KEY);
     if (stored) {
-      const parsed = JSON.parse(stored);
       // 合并默认设置，确保新添加的设置项有默认值
-      return { ...defaultReadingSettings, ...parsed };
+      return { ...defaultReadingSettings, ...(stored as ReadingSettings) };
     }
   } catch (error) {
     console.error('读取阅读设置失败:', error);
   }
-  return defaultReadingSettings;
+
+  // 如果没有存储的设置，获取当前全局主题作为初始主题
+  const getCurrentTheme = (): 'light' | 'dark' => {
+    const root = document.documentElement;
+    if (root.classList.contains('dark')) {
+      return 'dark';
+    }
+    return 'light';
+  };
+
+  return {
+    ...defaultReadingSettings,
+    theme: getCurrentTheme(),
+  };
 };
 
 // 保存阅读设置
-export const saveReadingSettings = (settings: ReadingSettings): void => {
+export const saveReadingSettings = async (settings: ReadingSettings): Promise<void> => {
   try {
-    localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
+    await config.set(SETTINGS_KEY, settings);
   } catch (error) {
     console.error('保存阅读设置失败:', error);
+    throw error;
   }
 };
 
 // 重置阅读设置
-export const resetReadingSettings = (): void => {
+export const resetReadingSettings = async (): Promise<void> => {
   try {
-    localStorage.removeItem(SETTINGS_KEY);
+    await config.reset(SETTINGS_KEY);
   } catch (error) {
     console.error('重置阅读设置失败:', error);
+    throw error;
   }
 };
 
 // 更新单个设置项
-export const updateReadingSetting = <K extends keyof ReadingSettings>(
+export const updateReadingSetting = async <K extends keyof ReadingSettings>(
   key: K,
   value: ReadingSettings[K],
-): ReadingSettings => {
-  const currentSettings = getReadingSettings();
+): Promise<ReadingSettings> => {
+  const currentSettings = await getReadingSettings();
   const newSettings = { ...currentSettings, [key]: value };
-  saveReadingSettings(newSettings);
+  await saveReadingSettings(newSettings);
   return newSettings;
 };
 
@@ -87,8 +87,8 @@ export const generateThemeStyles = (settings: ReadingSettings): React.CSSPropert
     lineHeight: settings.lineHeight,
     fontFamily: settings.fontFamily,
     textAlign: settings.textAlign,
-    padding: `${settings.marginVertical}px ${settings.marginHorizontal}px`,
-    filter: `brightness(${settings.brightness}%) contrast(${settings.contrast}%)`,
+    paddingLeft: `${settings.paddingHorizontal}px`,
+    paddingRight: `${settings.paddingHorizontal}px`,
   };
 
   // 根据主题设置背景色和文字颜色
@@ -148,6 +148,16 @@ export const readingModeOptions = [
   { value: 'flip', label: '翻页模式', description: '分页翻页阅读' },
 ];
 
+// 添加配置监听器
+export const addSettingsListener = (listener: (settings: ReadingSettings) => void): void => {
+  config.addListener(SETTINGS_KEY, listener);
+};
+
+// 移除配置监听器
+export const removeSettingsListener = (listener: (settings: ReadingSettings) => void): void => {
+  config.removeListener(SETTINGS_KEY, listener);
+};
+
 // 导出设置服务
 export const readingSettingsService = {
   get: getReadingSettings,
@@ -155,6 +165,8 @@ export const readingSettingsService = {
   reset: resetReadingSettings,
   update: updateReadingSetting,
   generateStyles: generateThemeStyles,
+  addListener: addSettingsListener,
+  removeListener: removeSettingsListener,
   options: {
     fonts: fontOptions,
     themes: themeOptions,

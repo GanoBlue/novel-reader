@@ -1,339 +1,448 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { Button } from '@/components/ui/button';
-import { ChevronLeft, ChevronRight } from 'lucide-react';
+import React, {
+  useRef,
+  useCallback,
+  forwardRef,
+  useImperativeHandle,
+  useState,
+  useEffect,
+  useMemo,
+} from 'react';
+import type { ReadingSettings } from '@/types/reading';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 interface FlipReaderProps {
-  content: string;
-  currentPosition: number;
-  onPositionChange: (position: number) => void;
-  settings: {
-    fontSize: number;
-    lineHeight: number;
-    theme: string;
-  };
+  paragraphs: string[];
+  currentIndex: number;
+  settings: ReadingSettings;
+  onRangeChanged: (range: { startIndex: number; endIndex: number }) => void;
+  onPageChange?: (pageIndex: number) => void;
 }
 
-interface Page {
-  content: string;
-  startPosition: number;
-  endPosition: number;
+export interface FlipReaderRef {
+  goToPage: (pageIndex: number) => void;
+  nextPage: () => void;
+  prevPage: () => void;
 }
 
-export const FlipReader: React.FC<FlipReaderProps> = ({
-  content,
-  currentPosition,
-  onPositionChange,
-  settings,
-}) => {
-  const [pages, setPages] = useState<Page[]>([]);
-  const [currentPageIndex, setCurrentPageIndex] = useState<number>(0);
-  const [isTransitioning, setIsTransitioning] = useState<boolean>(false);
+interface PageContent {
+  paragraphs: string[];
+  startIndex: number;
+  endIndex: number;
+}
 
-  const containerRef = useRef<HTMLDivElement>(null);
-  const pageRefs = useRef<(HTMLDivElement | null)[]>([]);
+const FlipReader = forwardRef<FlipReaderRef, FlipReaderProps>(
+  ({ paragraphs, currentIndex, settings, onRangeChanged, onPageChange }, ref) => {
+    const isMobile = useIsMobile();
+    const containerRef = useRef<HTMLDivElement>(null);
 
-  // 计算页面内容
-  const calculatePages = useCallback(() => {
-    if (!content || !containerRef.current) return [];
+    const [isTwoColumn, setIsTwoColumn] = useState(false);
+    const [currentPage, setCurrentPage] = useState(0);
+    const [isTransitioning, setIsTransitioning] = useState(false);
+    const [pages, setPages] = useState<PageContent[]>([]);
 
-    const container = containerRef.current;
-    const containerWidth = container.clientWidth;
-    const containerHeight = container.clientHeight;
+    // 触摸相关状态
+    const [touchStart, setTouchStart] = useState<{ x: number; y: number } | null>(null);
+    const [touchCurrent, setTouchCurrent] = useState<{ x: number; y: number } | null>(null);
+    const [slideOffset, setSlideOffset] = useState(0);
 
-    // 创建临时元素来测量文本
-    const tempElement = document.createElement('div');
-    tempElement.style.position = 'absolute';
-    tempElement.style.visibility = 'hidden';
-    tempElement.style.width = `${containerWidth}px`;
-    tempElement.style.fontSize = `${settings.fontSize}px`;
-    tempElement.style.lineHeight = `${settings.lineHeight}`;
-    tempElement.style.fontFamily = 'system-ui, -apple-system, sans-serif';
-    tempElement.style.padding = '20px';
-    tempElement.style.boxSizing = 'border-box';
+    // 计算是否应该使用双栏布局
+    const shouldUseTwoColumn = useCallback(() => {
+      if (!containerRef.current) return false;
+      const [width, height] = [containerRef.current.offsetWidth, containerRef.current.offsetHeight];
 
-    document.body.appendChild(tempElement);
+      if (width < 960) return false;
+      if (width < height * 1.2) return false;
+      return true;
+    }, []);
 
-    const calculatedPages: Page[] = [];
-    let currentPos = 0;
-    let pageIndex = 0;
+    // 简单的页面分组 - 避免复杂计算
+    const generatePages = useCallback(() => {
+      const newPages: PageContent[] = [];
+      let currentIndex = 0;
 
-    while (currentPos < content.length) {
-      // 尝试添加文本直到超出容器高度
-      let testPos = currentPos;
-      let lastValidPos = currentPos;
+      // 使用简单的固定大小分组，避免DOM测量
+      const itemsPerPage = isTwoColumn ? 15 : 30;
 
-      // 按段落分割，避免在句子中间断页
-      const paragraphs = content.slice(currentPos).split('\n');
-      let accumulatedText = '';
-
-      for (let i = 0; i < paragraphs.length; i++) {
-        const testText = accumulatedText + paragraphs[i] + (i < paragraphs.length - 1 ? '\n' : '');
-        tempElement.textContent = testText;
-
-        if (tempElement.scrollHeight <= containerHeight) {
-          lastValidPos = currentPos + testText.length;
-          accumulatedText = testText;
-        } else {
-          break;
-        }
-      }
-
-      // 如果没有找到合适的断点，强制分页
-      if (lastValidPos === currentPos) {
-        // 按字符逐步增加，找到合适的断点
-        let charPos = currentPos;
-        while (charPos < content.length && charPos - currentPos < 1000) {
-          const testText = content.slice(currentPos, charPos + 1);
-          tempElement.textContent = testText;
-
-          if (tempElement.scrollHeight <= containerHeight) {
-            lastValidPos = charPos + 1;
-            charPos++;
-          } else {
-            break;
-          }
-        }
-      }
-
-      if (lastValidPos > currentPos) {
-        calculatedPages.push({
-          content: content.slice(currentPos, lastValidPos),
-          startPosition: currentPos,
-          endPosition: lastValidPos,
+      while (currentIndex < paragraphs.length) {
+        const endIndex = Math.min(currentIndex + itemsPerPage, paragraphs.length);
+        newPages.push({
+          paragraphs: paragraphs.slice(currentIndex, endIndex),
+          startIndex: currentIndex,
+          endIndex,
         });
-        currentPos = lastValidPos;
-        pageIndex++;
-      } else {
-        // 防止无限循环
-        break;
+        currentIndex = endIndex;
       }
-    }
 
-    document.body.removeChild(tempElement);
-    return calculatedPages;
-  }, [content, settings.fontSize, settings.lineHeight]);
+      setPages(newPages);
+    }, [paragraphs, isTwoColumn]);
 
-  // 初始化页面
-  useEffect(() => {
-    const calculatedPages = calculatePages();
-    setPages(calculatedPages);
+    // 翻页方法
+    const nextPage = useCallback(() => {
+      if (currentPage < pages.length - 1 && !isTransitioning) {
+        setIsTransitioning(true);
+        setCurrentPage((prev) => prev + 1);
 
-    // 找到当前阅读位置对应的页面
-    const targetPageIndex = calculatedPages.findIndex(
-      (page) => currentPosition >= page.startPosition && currentPosition < page.endPosition,
-    );
-
-    if (targetPageIndex !== -1) {
-      setCurrentPageIndex(targetPageIndex);
-    }
-  }, [content, settings, calculatePages, currentPosition]);
-
-  // 翻页动画
-  const flipPage = useCallback(
-    (direction: 'prev' | 'next') => {
-      if (isTransitioning) return;
-
-      setIsTransitioning(true);
-
-      const newIndex =
-        direction === 'next'
-          ? Math.min(currentPageIndex + 1, pages.length - 1)
-          : Math.max(currentPageIndex - 1, 0);
-
-      if (newIndex !== currentPageIndex) {
-        setCurrentPageIndex(newIndex);
-
-        // 通知父组件位置变化
-        const newPage = pages[newIndex];
-        if (newPage) {
-          onPositionChange(newPage.startPosition);
+        if (onPageChange) {
+          onPageChange(currentPage + 1);
         }
+
+        // 通知范围变化
+        const page = pages[currentPage + 1];
+        if (page) {
+          onRangeChanged({
+            startIndex: page.startIndex,
+            endIndex: page.endIndex,
+          });
+        }
+
+        setTimeout(() => {
+          setIsTransitioning(false);
+        }, 300);
       }
+    }, [currentPage, pages, isTransitioning, onPageChange, onRangeChanged]);
 
-      // 动画完成后重置状态
-      setTimeout(() => {
-        setIsTransitioning(false);
-      }, 300);
-    },
-    [currentPageIndex, pages, isTransitioning, onPositionChange],
-  );
+    const prevPage = useCallback(() => {
+      if (currentPage > 0 && !isTransitioning) {
+        setIsTransitioning(true);
+        setCurrentPage((prev) => prev - 1);
 
-  // 键盘事件处理
-  useEffect(() => {
-    const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.code === 'ArrowLeft' || event.code === 'PageUp') {
-        event.preventDefault();
-        flipPage('prev');
-      } else if (event.code === 'ArrowRight' || event.code === 'PageDown') {
-        event.preventDefault();
-        flipPage('next');
+        if (onPageChange) {
+          onPageChange(currentPage - 1);
+        }
+
+        // 通知范围变化
+        const page = pages[currentPage - 1];
+        if (page) {
+          onRangeChanged({
+            startIndex: page.startIndex,
+            endIndex: page.endIndex,
+          });
+        }
+
+        setTimeout(() => {
+          setIsTransitioning(false);
+        }, 300);
       }
-    };
+    }, [currentPage, pages, isTransitioning, onPageChange, onRangeChanged]);
 
-    document.addEventListener('keydown', handleKeyDown);
-    return () => document.removeEventListener('keydown', handleKeyDown);
-  }, [flipPage]);
+    const goToPage = useCallback(
+      (pageIndex: number) => {
+        if (pageIndex >= 0 && pageIndex < pages.length && !isTransitioning) {
+          setIsTransitioning(true);
+          setCurrentPage(pageIndex);
 
-  // 触摸手势处理
-  const handleTouchStart = useCallback(
-    (event: React.TouchEvent) => {
-      const touch = event.touches[0];
-      const startX = touch.clientX;
-      const startY = touch.clientY;
-
-      const handleTouchMove = (moveEvent: TouchEvent) => {
-        const moveTouch = moveEvent.touches[0];
-        const deltaX = moveTouch.clientX - startX;
-        const deltaY = moveTouch.clientY - startY;
-
-        // 水平滑动距离大于垂直滑动距离时，处理翻页
-        if (Math.abs(deltaX) > Math.abs(deltaY) && Math.abs(deltaX) > 50) {
-          if (deltaX > 0) {
-            flipPage('prev');
-          } else {
-            flipPage('next');
+          if (onPageChange) {
+            onPageChange(pageIndex);
           }
 
-          document.removeEventListener('touchmove', handleTouchMove);
-          document.removeEventListener('touchend', handleTouchEnd);
+          // 通知范围变化
+          const page = pages[pageIndex];
+          if (page) {
+            onRangeChanged({
+              startIndex: page.startIndex,
+              endIndex: page.endIndex,
+            });
+          }
+
+          setTimeout(() => {
+            setIsTransitioning(false);
+          }, 300);
         }
-      };
-
-      const handleTouchEnd = () => {
-        document.removeEventListener('touchmove', handleTouchMove);
-        document.removeEventListener('touchend', handleTouchEnd);
-      };
-
-      document.addEventListener('touchmove', handleTouchMove);
-      document.addEventListener('touchend', handleTouchEnd);
-    },
-    [flipPage],
-  );
-
-  if (pages.length === 0) {
-    return (
-      <div className="flex items-center justify-center h-full">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
-          <p className="text-muted-foreground">正在计算页面...</p>
-        </div>
-      </div>
+      },
+      [pages, isTransitioning, onPageChange, onRangeChanged],
     );
-  }
 
-  const currentPage = pages[currentPageIndex];
-  const prevPage = pages[currentPageIndex - 1];
-  const nextPage = pages[currentPageIndex + 1];
+    // 暴露方法给父组件
+    useImperativeHandle(
+      ref,
+      () => ({
+        goToPage,
+        nextPage,
+        prevPage,
+      }),
+      [goToPage, nextPage, prevPage],
+    );
 
-  return (
-    <div className="relative h-full overflow-hidden">
-      {/* 页面容器 */}
-      <div ref={containerRef} className="relative w-full h-full" onTouchStart={handleTouchStart}>
-        {/* 上一页 */}
-        {prevPage && (
-          <div
-            className={`absolute inset-0 transition-transform duration-300 ${
-              isTransitioning ? '-translate-x-full' : 'translate-x-0'
-            }`}
-            style={{
-              fontSize: `${settings.fontSize}px`,
-              lineHeight: settings.lineHeight,
-              fontFamily: 'system-ui, -apple-system, sans-serif',
-              padding: '20px',
-              boxSizing: 'border-box',
-            }}
-          >
-            <div className="prose prose-lg max-w-none h-full overflow-hidden">
-              {prevPage.content.split('\n').map((line, index) => (
-                <p key={index} className="mb-4 leading-relaxed">
-                  {line || '\u00A0'}
-                </p>
-              ))}
-            </div>
-          </div>
-        )}
+    // 触摸事件处理
+    const handleTouchStart = useCallback(
+      (e: React.TouchEvent) => {
+        if (isTransitioning) return;
+        const touch = e.touches[0];
+        setTouchStart({ x: touch.clientX, y: touch.clientY });
+        setTouchCurrent({ x: touch.clientX, y: touch.clientY });
+      },
+      [isTransitioning],
+    );
 
-        {/* 当前页 */}
+    const handleTouchMove = useCallback(
+      (e: React.TouchEvent) => {
+        if (!touchStart || isTransitioning) return;
+        e.preventDefault();
+
+        const touch = e.touches[0];
+        setTouchCurrent({ x: touch.clientX, y: touch.clientY });
+
+        const deltaX = touch.clientX - touchStart.x;
+        const deltaY = Math.abs(touch.clientY - touchStart.y);
+
+        if (Math.abs(deltaX) > deltaY) {
+          setSlideOffset(deltaX);
+        }
+      },
+      [touchStart, isTransitioning],
+    );
+
+    const handleTouchEnd = useCallback(() => {
+      if (!touchStart || !touchCurrent || isTransitioning) return;
+
+      const deltaX = touchCurrent.x - touchStart.x;
+      const deltaY = Math.abs(touchCurrent.y - touchStart.y);
+      const threshold = 50;
+
+      if (Math.abs(deltaX) > deltaY && Math.abs(deltaX) > threshold) {
+        if (deltaX > 0) {
+          prevPage();
+        } else {
+          nextPage();
+        }
+      }
+
+      setTouchStart(null);
+      setTouchCurrent(null);
+      setSlideOffset(0);
+    }, [touchStart, touchCurrent, isTransitioning, prevPage, nextPage]);
+
+    // 键盘事件处理
+    const handleKeyDown = useCallback(
+      (e: React.KeyboardEvent) => {
+        if (isTransitioning) return;
+
+        switch (e.key) {
+          case 'ArrowLeft':
+          case 'PageUp':
+            e.preventDefault();
+            prevPage();
+            break;
+          case 'ArrowRight':
+          case 'PageDown':
+            e.preventDefault();
+            nextPage();
+            break;
+        }
+      },
+      [isTransitioning, prevPage, nextPage],
+    );
+
+    // 鼠标事件处理
+    const handleClick = useCallback(
+      (e: React.MouseEvent) => {
+        if (isTransitioning) return;
+
+        const rect = containerRef.current?.getBoundingClientRect();
+        if (!rect) return;
+
+        const clickX = e.clientX - rect.left;
+        const containerWidth = rect.width;
+
+        if (clickX < containerWidth / 3) {
+          prevPage();
+        } else if (clickX > (containerWidth * 2) / 3) {
+          nextPage();
+        }
+      },
+      [isTransitioning, prevPage, nextPage],
+    );
+
+    // 初始化页面
+    useEffect(() => {
+      generatePages();
+    }, [generatePages]);
+
+    // 根据当前阅读位置计算对应的页面
+    useEffect(() => {
+      if (pages.length > 0 && currentIndex >= 0) {
+        // 找到包含当前索引的页面
+        const targetPage = pages.findIndex(
+          (page) => currentIndex >= page.startIndex && currentIndex < page.endIndex,
+        );
+
+        if (targetPage !== -1) {
+          setCurrentPage(targetPage);
+        } else {
+          // 如果找不到对应页面，根据位置比例计算
+          const progress = currentIndex / paragraphs.length;
+          const targetPageIndex = Math.floor(progress * pages.length);
+          setCurrentPage(Math.min(targetPageIndex, pages.length - 1));
+        }
+      }
+    }, [pages, currentIndex, paragraphs.length]);
+
+    // 更新双栏状态
+    useEffect(() => {
+      const shouldUse = shouldUseTwoColumn();
+      if (shouldUse !== isTwoColumn) {
+        setIsTwoColumn(shouldUse);
+        setTimeout(() => {
+          generatePages();
+          // 保持当前页面位置，重新计算对应页面
+          if (pages.length > 0 && currentIndex >= 0) {
+            const targetPage = pages.findIndex(
+              (page) => currentIndex >= page.startIndex && currentIndex < page.endIndex,
+            );
+            if (targetPage !== -1) {
+              setCurrentPage(targetPage);
+            }
+          }
+        }, 100);
+      }
+    }, [shouldUseTwoColumn, isTwoColumn, generatePages, currentIndex, pages]);
+
+    // 当段落内容变化时重置状态
+    useEffect(() => {
+      setIsTransitioning(false);
+      // 只有在内容完全变化时才重置到第一页
+      if (paragraphs.length > 0) {
+        setCurrentPage(0);
+      }
+    }, [paragraphs.length]);
+
+    // 渲染页面内容
+    const renderPageContent = (pageContent: PageContent, isLeftColumn = false) => {
+      return (
         <div
-          className={`absolute inset-0 transition-transform duration-300 ${
-            isTransitioning ? 'translate-x-full' : 'translate-x-0'
-          }`}
+          className={`flex-1 ${isTwoColumn && isLeftColumn ? 'pr-2' : isTwoColumn ? 'pl-2' : ''}`}
           style={{
             fontSize: `${settings.fontSize}px`,
             lineHeight: settings.lineHeight,
-            fontFamily: 'system-ui, -apple-system, sans-serif',
-            padding: '20px',
-            boxSizing: 'border-box',
+            fontFamily: settings.fontFamily,
+            textAlign: settings.textAlign,
+            paddingLeft: `${settings.paddingHorizontal}px`,
+            paddingRight: `${settings.paddingHorizontal}px`,
           }}
         >
-          <div className="prose prose-lg max-w-none h-full overflow-hidden">
-            {currentPage.content.split('\n').map((line, index) => (
-              <p key={index} className="mb-4 leading-relaxed">
-                {line || '\u00A0'}
-              </p>
-            ))}
+          {pageContent.paragraphs.map((paragraph, index) => (
+            <p key={index} className="mb-4 whitespace-pre-wrap">
+              {paragraph || '\u00A0'}
+            </p>
+          ))}
+        </div>
+      );
+    };
+
+    if (pages.length === 0) {
+      return (
+        <div className="flex items-center justify-center h-full">
+          <div className="text-gray-500">正在加载...</div>
+        </div>
+      );
+    }
+
+    const currentPageContent = pages[currentPage];
+    const prevPageContent = currentPage > 0 ? pages[currentPage - 1] : null;
+    const nextPageContent = currentPage < pages.length - 1 ? pages[currentPage + 1] : null;
+
+    return (
+      <div
+        ref={containerRef}
+        className="relative w-full h-full overflow-hidden select-none"
+        onTouchStart={handleTouchStart}
+        onTouchMove={handleTouchMove}
+        onTouchEnd={handleTouchEnd}
+        onKeyDown={handleKeyDown}
+        onClick={handleClick}
+        tabIndex={0}
+        style={{ outline: 'none' }}
+      >
+        {/* 页面容器 */}
+        <div
+          className="relative w-full h-full"
+          style={{
+            transform: `translateX(${slideOffset}px)`,
+            transition: isTransitioning ? 'transform 0.3s ease-out' : 'none',
+          }}
+        >
+          {/* 上一页 */}
+          {prevPageContent && (
+            <div
+              className="absolute inset-0 flex"
+              style={{
+                transform: 'translateX(-100%)',
+                zIndex: 1,
+              }}
+            >
+              {isTwoColumn ? (
+                <>
+                  {renderPageContent(prevPageContent, true)}
+                  {renderPageContent(prevPageContent, false)}
+                </>
+              ) : (
+                renderPageContent(prevPageContent)
+              )}
+            </div>
+          )}
+
+          {/* 当前页 */}
+          <div className="absolute inset-0 flex" style={{ zIndex: 2 }}>
+            {isTwoColumn ? (
+              <>
+                {renderPageContent(currentPageContent, true)}
+                {renderPageContent(currentPageContent, false)}
+              </>
+            ) : (
+              renderPageContent(currentPageContent)
+            )}
           </div>
+
+          {/* 下一页 */}
+          {nextPageContent && (
+            <div
+              className="absolute inset-0 flex"
+              style={{
+                transform: 'translateX(100%)',
+                zIndex: 1,
+              }}
+            >
+              {isTwoColumn ? (
+                <>
+                  {renderPageContent(nextPageContent, true)}
+                  {renderPageContent(nextPageContent, false)}
+                </>
+              ) : (
+                renderPageContent(nextPageContent)
+              )}
+            </div>
+          )}
         </div>
 
-        {/* 下一页 */}
-        {nextPage && (
-          <div
-            className="absolute inset-0 translate-x-full"
-            style={{
-              fontSize: `${settings.fontSize}px`,
-              lineHeight: settings.lineHeight,
-              fontFamily: 'system-ui, -apple-system, sans-serif',
-              padding: '20px',
-              boxSizing: 'border-box',
-            }}
-          >
-            <div className="prose prose-lg max-w-none h-full overflow-hidden">
-              {nextPage.content.split('\n').map((line, index) => (
-                <p key={index} className="mb-4 leading-relaxed">
-                  {line || '\u00A0'}
-                </p>
-              ))}
-            </div>
-          </div>
+        {/* 页面指示器 */}
+        <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 bg-black bg-opacity-50 text-white px-3 py-1 rounded-full text-sm">
+          {currentPage + 1} / {pages.length}
+        </div>
+
+        {/* 翻页按钮 */}
+        {!isMobile && (
+          <>
+            <button
+              className="absolute left-4 top-1/2 transform -translate-y-1/2 w-12 h-12 bg-black bg-opacity-50 text-white rounded-full flex items-center justify-center hover:bg-opacity-70 transition-opacity"
+              onClick={prevPage}
+              disabled={currentPage === 0 || isTransitioning}
+            >
+              ←
+            </button>
+            <button
+              className="absolute right-4 top-1/2 transform -translate-y-1/2 w-12 h-12 bg-black bg-opacity-50 text-white rounded-full flex items-center justify-center hover:bg-opacity-70 transition-opacity"
+              onClick={nextPage}
+              disabled={currentPage === pages.length - 1 || isTransitioning}
+            >
+              →
+            </button>
+          </>
         )}
       </div>
+    );
+  },
+);
 
-      {/* 翻页按钮 */}
-      <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2">
-        <div className="flex items-center space-x-4 bg-background/95 backdrop-blur rounded-lg border px-4 py-2">
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => flipPage('prev')}
-            disabled={currentPageIndex === 0 || isTransitioning}
-          >
-            <ChevronLeft className="h-4 w-4" />
-          </Button>
+FlipReader.displayName = 'FlipReader';
 
-          <span className="text-sm text-muted-foreground">
-            {currentPageIndex + 1} / {pages.length}
-          </span>
-
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => flipPage('next')}
-            disabled={currentPageIndex === pages.length - 1 || isTransitioning}
-          >
-            <ChevronRight className="h-4 w-4" />
-          </Button>
-        </div>
-      </div>
-
-      {/* 页面指示器 */}
-      <div className="absolute top-4 right-4">
-        <div className="bg-background/95 backdrop-blur rounded-lg border px-3 py-1">
-          <span className="text-xs text-muted-foreground">
-            第 {currentPageIndex + 1} 页，共 {pages.length} 页
-          </span>
-        </div>
-      </div>
-    </div>
-  );
-};
-
+export default FlipReader;

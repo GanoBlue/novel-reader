@@ -135,3 +135,13 @@
     overflow: hidden;
   }
 }
+
+/* 阅读页面空段落处理 */
+.reading-content p:empty::before {
+  content: ' ';
+}
+
+/* 确保空段落有最小高度 */
+.reading-content p {
+  min-height: 1.2em;
+}

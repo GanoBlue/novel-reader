@@ -41,3 +41,4 @@ export function BookCover({ cover, size = 'medium', onClick, className }: BookCo
     </div>
   );
 }
+

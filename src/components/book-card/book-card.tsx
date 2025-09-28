@@ -13,7 +13,13 @@ interface BookCardProps {
   cover: string;
   currentChapter: number;
   totalChapters: number;
-  progress: number;
+  readingProgress?: {
+    progress: number;
+    paraOffset: number;
+    lastReadAt: string;
+    readingTime: number;
+    currentChapter?: string;
+  };
   variant?: 'library' | 'favorites' | 'history';
   displayMode?: 'grid' | 'list';
   lastRead?: string;
@@ -32,7 +38,7 @@ export default function BookCard({
   author,
   cover,
   currentChapter,
-  progress,
+  readingProgress,
   variant = 'library',
   displayMode = 'grid',
   totalTime,
@@ -85,7 +91,7 @@ export default function BookCard({
             {/* 进度信息 */}
             <BookProgressInfo
               currentChapter={currentChapter}
-              progress={progress}
+              progress={readingProgress?.progress || 0}
               totalTime={totalTime}
               readCount={readCount}
               variant={variant}
@@ -157,7 +163,7 @@ export default function BookCard({
             {/* 进度信息 */}
             <BookProgressInfo
               currentChapter={currentChapter}
-              progress={progress}
+              progress={readingProgress?.progress || 0}
               totalTime={totalTime}
               readCount={readCount}
               progressSize="small"

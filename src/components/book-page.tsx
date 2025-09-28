@@ -4,12 +4,13 @@ import pako from 'pako';
 import { Plus, Search, Settings, Grid, List, Heart } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { BookCard } from './book-card';
-import { useBooks, type PageType } from '@/hooks/use-books';
+import { useBooks } from '@/hooks/use-books';
+import type { PageType } from '@/types/common';
 import { Upload } from 'antd';
 import { toast } from 'sonner';
 import type { UploadProps } from 'antd';
 import { useNavigate } from 'react-router-dom';
-import { saveBookContentDB } from '@/services/db';
+import storage from '@/services/storage';
 import { useI18n } from '@/services/i18n';
 
 interface BookPageProps {
@@ -38,7 +39,7 @@ const pageConfig = {
 
 export function BookPage({ pageType }: BookPageProps) {
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
-  const { books, allBooks, toggleFavorite, handleRead, addBook, isLoading } = useBooks({
+  const { books, toggleFavorite, addBook, isLoading } = useBooks({
     pageType,
   });
   const navigate = useNavigate();
@@ -110,19 +111,21 @@ export function BookPage({ pageType }: BookPageProps) {
               title: fileName.replace(/\.(txt|txt\.gz|epub)$/i, ''), // 移除扩展名作为标题
               author: '未知作者', // 默认作者
               cover: `from-${['blue', 'green', 'purple', 'red', 'yellow'][Math.floor(Math.random() * 5)]}-400 to-${['blue', 'green', 'purple', 'red', 'yellow'][Math.floor(Math.random() * 5)]}-600`, // 随机封面颜色
+              format: 'txt' as const,
+              fileSize: file.size,
               currentChapter: 1,
               totalChapters: 1,
-              progress: 0,
-              lastRead: new Date().toISOString().split('T')[0],
+              lastReadDate: new Date().toISOString().split('T')[0],
               totalTime: 0,
               readCount: 0,
               isFavorite: false,
+              addDate: new Date().toISOString(),
             };
             addBook(newBook);
 
             // 将正文写入 IndexedDB，避免 localStorage 配额问题
             if (textContent) {
-              saveBookContentDB(newBook.id, textContent).catch(() => {
+              storage.saveBookContent(newBook.id, textContent).catch(() => {
                 // 忽略兜底：现已完全移除 localStorage 存储正文
                 console.warn('保存正文到 IndexedDB 失败');
               });
@@ -147,13 +150,15 @@ export function BookPage({ pageType }: BookPageProps) {
           title: fileName.replace(/\.(txt|txt\.gz|epub)$/i, ''), // 移除文件扩展名作为标题
           author: '未知作者', // 默认作者
           cover: `from-${['blue', 'green', 'purple', 'red', 'yellow'][Math.floor(Math.random() * 5)]}-400 to-${['blue', 'green', 'purple', 'red', 'yellow'][Math.floor(Math.random() * 5)]}-600`, // 随机封面颜色
+          format: 'epub' as const,
+          fileSize: file.size,
           currentChapter: 1,
           totalChapters: 1,
-          progress: 0,
-          lastRead: new Date().toISOString().split('T')[0],
+          lastReadDate: new Date().toISOString().split('T')[0],
           totalTime: 0,
           readCount: 0,
           isFavorite: false,
+          addDate: new Date().toISOString(),
         };
 
         // 添加到zustand store
@@ -197,7 +202,7 @@ export function BookPage({ pageType }: BookPageProps) {
   // 覆盖阅读行为：跳转到阅读器
   const openReader = useCallback(
     (bookId: number) => {
-      navigate(`/reader/${bookId}`);
+      navigate(`/read/${bookId}`);
     },
     [navigate],
   );
@@ -324,4 +329,3 @@ export function BookPage({ pageType }: BookPageProps) {
     </div>
   );
 }
-

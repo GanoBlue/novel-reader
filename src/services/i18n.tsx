@@ -7,7 +7,7 @@ import {
   useMemo,
   useState,
 } from 'react';
-import { storageService } from '@/services/storage';
+import config from './config';
 
 type Lang = 'zh-CN' | 'en-US';
 
@@ -48,15 +48,34 @@ const enUS: Messages = {
 const LANGUAGE_KEY = 'novel-reader-lang';
 
 function getSavedLangSync(): Lang {
-  const s = storageService.loadSettings();
-  const lang = s[LANGUAGE_KEY] as Lang | undefined;
-  return lang ?? DEFAULT_LANG;
+  // 同步获取语言设置，如果 IndexedDB 不可用则使用默认值
+  try {
+    const stored = localStorage.getItem(LANGUAGE_KEY);
+    return (stored as Lang) ?? DEFAULT_LANG;
+  } catch {
+    return DEFAULT_LANG;
+  }
 }
 
 async function saveLang(lang: Lang) {
-  const s = await storageService.loadSettingsAsync();
-  s[LANGUAGE_KEY] = lang;
-  await storageService.saveSettings(s);
+  try {
+    // 保存到 IndexedDB
+    await config.set(LANGUAGE_KEY, lang);
+    // 同时保存到 localStorage 作为备用
+    try {
+      localStorage.setItem(LANGUAGE_KEY, lang);
+    } catch (localError) {
+      console.warn('localStorage 保存失败，但 IndexedDB 保存成功:', localError);
+    }
+  } catch (error) {
+    console.error('IndexedDB 保存语言设置失败:', error);
+    // 降级到 localStorage
+    try {
+      localStorage.setItem(LANGUAGE_KEY, lang);
+    } catch (localError) {
+      console.error('localStorage 也保存失败:', localError);
+    }
+  }
 }
 
 const I18nContext = createContext<{
@@ -71,9 +90,20 @@ export function I18nProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     (async () => {
-      const settings = await storageService.loadSettingsAsync();
-      const l = (settings[LANGUAGE_KEY] as Lang | undefined) ?? DEFAULT_LANG;
-      setLangState(l);
+      try {
+        const lang = await config.get(LANGUAGE_KEY, DEFAULT_LANG);
+        setLangState(lang);
+      } catch (error) {
+        console.error('加载语言设置失败:', error);
+        // 降级到 localStorage
+        try {
+          const stored = localStorage.getItem(LANGUAGE_KEY);
+          setLangState((stored as Lang) ?? DEFAULT_LANG);
+        } catch (localError) {
+          console.error('localStorage 也不可用:', localError);
+          setLangState(DEFAULT_LANG);
+        }
+      }
     })();
   }, []);
 
@@ -98,4 +128,3 @@ export function useI18n() {
 }
 
 export type { Lang };
-

@@ -6,7 +6,7 @@ import { LoadingSpinner } from '@/components/LoadingSpinner';
 // 懒加载页面组件
 const Library = lazy(() => import('@/pages/Library'));
 const Favorites = lazy(() => import('@/pages/Favorites'));
-const ReadPage = lazy(() => import('@/pages/ReadPage'));
+const Read = lazy(() => import('@/pages/Read'));
 
 const router = createBrowserRouter([
   {
@@ -16,10 +16,9 @@ const router = createBrowserRouter([
       {
         index: true, // 默认子路由
         element: (
-          <div className="p-4">
-            <h1 className="text-2xl font-bold mb-4">欢迎使用小说阅读器</h1>
-            <p className="text-muted-foreground">选择左侧菜单开始阅读</p>
-          </div>
+          <Suspense fallback={<LoadingSpinner />}>
+            <Library />
+          </Suspense>
         ),
       },
       {
@@ -41,13 +40,12 @@ const router = createBrowserRouter([
     ],
   },
   {
-    path: '/reader/:bookId',
+    path: '/read/:bookId',
     element: (
       <Suspense fallback={<LoadingSpinner />}>
-        <ReadPage />
+        <Read />
       </Suspense>
     ),
   },
 ]);
 export { router };
-
