@@ -1,11 +1,12 @@
 import { Progress } from '@/components/ui/progress';
-import { formatTime } from '@/lib/time-utils';
+import { formatTime, formatDate } from '@/lib/time-utils';
 
 interface BookProgressInfoProps {
   currentChapter: number;
   progress: number;
   totalTime?: number;
   readCount?: number;
+  lastReadAt?: string; // 最近阅读时间
   variant?: 'library' | 'favorites' | 'history';
   favoriteDate?: string;
   className?: string;
@@ -22,6 +23,7 @@ export function BookProgressInfo({
   progress,
   totalTime,
   readCount,
+  lastReadAt,
   variant = 'library',
   favoriteDate,
   className,
@@ -48,6 +50,15 @@ export function BookProgressInfo({
         >
           {totalTime !== undefined && <span>时长: {formatTime(totalTime)}</span>}
           {readCount !== undefined && <span>阅读: {readCount} 次</span>}
+        </div>
+      )}
+
+      {/* 最近阅读时间 - 单独一行 */}
+      {lastReadAt && (
+        <div
+          className={`text-xs text-muted-foreground ${displayMode === 'list' ? 'mb-1' : 'mb-3'}`}
+        >
+          最近: {formatDate(lastReadAt)}
         </div>
       )}
 

@@ -4,6 +4,38 @@
 
 import storage from './storage';
 import type { ReadingProgress } from '@/types/book';
+import { useBookStore } from '@/store/book-store';
+import type { Book } from '@/types/book';
+
+// 辅助函数：计算并累加阅读时长
+const calculateAndAccumulateReadingTime = (
+  progress: ReadingProgress,
+  book: Book,
+): { newReadingTime: number; newTotalTime: number } => {
+  if (!progress.sessionStartTime) {
+    return {
+      newReadingTime: progress.readingTime || 0,
+      newTotalTime: book.totalTime || 0,
+    };
+  }
+
+  const sessionStart = new Date(progress.sessionStartTime);
+  const sessionDurationMinutes = Math.floor(
+    (new Date().getTime() - sessionStart.getTime()) / (1000 * 60),
+  );
+
+  if (sessionDurationMinutes <= 0) {
+    return {
+      newReadingTime: progress.readingTime || 0,
+      newTotalTime: book.totalTime || 0,
+    };
+  }
+
+  return {
+    newReadingTime: (progress.readingTime || 0) + sessionDurationMinutes,
+    newTotalTime: (book.totalTime || 0) + sessionDurationMinutes,
+  };
+};
 
 // 获取特定书籍的阅读进度
 export const getReadingProgress = async (bookId: number): Promise<ReadingProgress | null> => {
@@ -19,25 +51,87 @@ export const getReadingProgress = async (bookId: number): Promise<ReadingProgres
   }
 };
 
-// 保存阅读进度
-export const saveReadingProgress = async (progress: ReadingProgress): Promise<void> => {
+// 开始阅读会话（记录开始时间，增加阅读次数）
+export const startReadingSession = async (bookId: number): Promise<void> => {
   try {
-    const book = await storage.getBook(progress.bookId);
+    const book = await storage.getBook(bookId);
     if (!book) {
-      console.error('书籍不存在:', progress.bookId);
+      console.error('书籍不存在:', bookId);
       return;
     }
 
-    // 更新书籍的阅读进度信息
-    const updatedBook = {
-      ...book,
-      readingProgress: progress,
-      lastReadDate: progress.lastReadAt.split('T')[0], // 转换为日期格式
+    const now = new Date().toISOString();
+    const existingProgress = book.readingProgress;
+
+    // 如果之前有未结束的会话，先结束它（计算并累加时长）
+    if (existingProgress?.sessionStartTime) {
+      const { newReadingTime, newTotalTime } = calculateAndAccumulateReadingTime(
+        existingProgress,
+        book,
+      );
+      existingProgress.readingTime = newReadingTime;
+      book.totalTime = newTotalTime;
+    }
+
+    // 检查是否需要增加阅读次数（仅在会话开始时间不存在时增加，避免重复增加）
+    let readCount = book.readCount || 0;
+    if (!existingProgress?.sessionStartTime) {
+      readCount += 1; // 只有在新会话开始时才增加阅读次数
+    }
+
+    // 创建或更新阅读进度，记录会话开始时间
+    const newProgress: ReadingProgress = {
+      bookId,
+      paraOffset: existingProgress?.paraOffset || 0,
+      progress: existingProgress?.progress || 0,
+      lastReadAt: now,
+      readingTime: existingProgress?.readingTime || 0,
+      currentChapter: existingProgress?.currentChapter,
+      sessionStartTime: now, // 记录新的会话开始时间
     };
 
-    await storage.saveBook(updatedBook);
+    // 更新 store（会自动保存到 IndexedDB）
+    useBookStore.getState().updateBook(bookId, {
+      readingProgress: newProgress,
+      readCount,
+      totalTime: book.totalTime || 0,
+    });
   } catch (error) {
-    console.error('保存阅读进度失败:', error);
+    console.error('开始阅读会话失败:', error);
+    throw error;
+  }
+};
+
+// 结束阅读会话（计算本次阅读时长并累加）
+export const endReadingSession = async (bookId: number): Promise<void> => {
+  try {
+    const book = await storage.getBook(bookId);
+    if (!book || !book.readingProgress) {
+      return;
+    }
+
+    const progress = book.readingProgress;
+    if (!progress.sessionStartTime) {
+      return; // 没有会话开始时间，跳过
+    }
+
+    // 计算并累加阅读时长
+    const { newReadingTime, newTotalTime } = calculateAndAccumulateReadingTime(progress, book);
+
+    // 更新阅读进度（清除会话开始时间）
+    const updatedProgress: ReadingProgress = {
+      ...progress,
+      readingTime: newReadingTime,
+      sessionStartTime: undefined, // 清除会话开始时间
+    };
+
+    // 更新 store（会自动保存到 IndexedDB）
+    useBookStore.getState().updateBook(bookId, {
+      readingProgress: updatedProgress,
+      totalTime: newTotalTime,
+    });
+  } catch (error) {
+    console.error('结束阅读会话失败:', error);
     throw error;
   }
 };
@@ -60,138 +154,35 @@ export const updateReadingProgress = async (
     const now = new Date().toISOString();
     // 获取现有进度
     const existingProgress = book.readingProgress;
-    const readingTime = existingProgress ? existingProgress.readingTime + 1 : 1; // 简单递增，实际应该计算时间差
+
+    // 如果还没有会话开始时间，则设置为当前时间（防止第一次更新时没有会话）
+    const sessionStartTime = existingProgress?.sessionStartTime || now;
 
     const newProgress: ReadingProgress = {
       bookId,
       paraOffset,
       progress,
       lastReadAt: now,
-      readingTime,
+      readingTime: existingProgress?.readingTime || 0, // 保持现有阅读时长，不在这里累加
       currentChapter,
+      sessionStartTime, // 保持会话开始时间
     };
 
-    // 更新书籍的阅读进度信息
-    const updatedBook = {
-      ...book,
+    // 更新 store（会自动保存到 IndexedDB）
+    useBookStore.getState().updateBook(bookId, {
       readingProgress: newProgress,
-      lastReadDate: now.split('T')[0],
-    };
-
-    await storage.saveBook(updatedBook);
+    });
   } catch (error) {
     console.error('更新阅读进度失败:', error);
     throw error;
   }
 };
 
-// 获取所有阅读进度
-export const getAllReadingProgress = async (): Promise<Record<number, ReadingProgress>> => {
-  try {
-    const books = await storage.getAllBooks();
-    const result: Record<number, ReadingProgress> = {};
-
-    books.forEach((book) => {
-      if (book.readingProgress) {
-        result[book.id] = book.readingProgress;
-      }
-    });
-
-    return result;
-  } catch (error) {
-    console.error('读取阅读进度失败:', error);
-    return {};
-  }
-};
-
-// 删除阅读进度
-export const deleteReadingProgress = async (bookId: number): Promise<void> => {
-  try {
-    const book = await storage.getBook(bookId);
-    if (!book) {
-      console.error('书籍不存在:', bookId);
-      return;
-    }
-
-    // 清除阅读进度信息
-    const updatedBook = {
-      ...book,
-      readingProgress: undefined,
-      lastReadDate: undefined,
-    };
-
-    await storage.saveBook(updatedBook);
-  } catch (error) {
-    console.error('删除阅读进度失败:', error);
-    throw error;
-  }
-};
-
-// 清除所有阅读进度
-export const clearAllReadingProgress = async (): Promise<void> => {
-  try {
-    const books = await storage.getAllBooks();
-
-    // 批量更新所有书籍，清除阅读进度
-    for (const book of books) {
-      if (book.readingProgress) {
-        const updatedBook = {
-          ...book,
-          readingProgress: undefined,
-          lastReadDate: undefined,
-        };
-        await storage.saveBook(updatedBook);
-      }
-    }
-  } catch (error) {
-    console.error('清除阅读进度失败:', error);
-    throw error;
-  }
-};
-
-// 获取阅读统计
-export const getReadingStats = async () => {
-  try {
-    const allProgress = await getAllReadingProgress();
-    const books = Object.values(allProgress);
-
-    const totalBooks = books.length;
-    const totalReadingTime = books.reduce((sum, book) => sum + book.readingTime, 0);
-    const averageProgress =
-      books.length > 0
-        ? Math.round(books.reduce((sum, book) => sum + (book.progress || 0), 0) / books.length)
-        : 0;
-
-    // 最近阅读的书籍
-    const recentlyRead = books
-      .sort((a, b) => new Date(b.lastReadAt).getTime() - new Date(a.lastReadAt).getTime())
-      .slice(0, 5);
-
-    return {
-      totalBooks,
-      totalReadingTime,
-      averageProgress,
-      recentlyRead,
-    };
-  } catch (error) {
-    console.error('获取阅读统计失败:', error);
-    return {
-      totalBooks: 0,
-      totalReadingTime: 0,
-      averageProgress: 0,
-      recentlyRead: [],
-    };
-  }
-};
-
 // 导出进度服务
 export const readingProgressService = {
-  getAll: getAllReadingProgress,
   get: getReadingProgress,
-  save: saveReadingProgress,
   update: updateReadingProgress,
-  delete: deleteReadingProgress,
-  clear: clearAllReadingProgress,
-  getStats: getReadingStats,
+  startSession: startReadingSession,
+  endSession: endReadingSession,
 };
 

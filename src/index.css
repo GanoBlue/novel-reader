@@ -145,3 +145,122 @@
 .reading-content p {
   min-height: 1.2em;
 }
+
+/* EPUB HTML 内容样式 */
+.epub-html-content {
+  /* 继承阅读设置 */
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+}
+
+/* EPUB 标题样式 */
+.epub-html-content h1,
+.epub-html-content h2,
+.epub-html-content h3,
+.epub-html-content h4,
+.epub-html-content h5,
+.epub-html-content h6 {
+  font-weight: bold;
+  margin-top: 1em;
+  margin-bottom: 0.5em;
+}
+
+.epub-html-content h1 {
+  font-size: 1.5em;
+}
+
+.epub-html-content h2 {
+  font-size: 1.3em;
+}
+
+.epub-html-content h3 {
+  font-size: 1.1em;
+}
+
+/* EPUB 段落样式 */
+.epub-html-content p {
+  margin: 0.5em 0;
+  line-height: inherit;
+}
+
+/* EPUB 列表样式 */
+.epub-html-content ul,
+.epub-html-content ol {
+  margin: 0.5em 0;
+  padding-left: 2em;
+}
+
+.epub-html-content li {
+  margin: 0.25em 0;
+}
+
+/* EPUB 引用样式 */
+.epub-html-content blockquote {
+  margin: 0.5em 0;
+  padding-left: 1em;
+  border-left: 3px solid currentColor;
+  opacity: 0.7;
+}
+
+/* EPUB 代码样式 */
+.epub-html-content pre,
+.epub-html-content code {
+  font-family: monospace;
+  background-color: rgba(0, 0, 0, 0.05);
+  padding: 0.2em 0.4em;
+  border-radius: 3px;
+}
+
+.epub-html-content pre {
+  padding: 0.5em;
+  overflow-x: auto;
+}
+
+/* EPUB 强调样式 */
+.epub-html-content strong,
+.epub-html-content b {
+  font-weight: bold;
+}
+
+.epub-html-content em,
+.epub-html-content i {
+  font-style: italic;
+}
+
+/* EPUB 图片样式 */
+.epub-html-content img {
+  max-width: 100%;
+  height: auto;
+  display: block;
+  margin: 0.5em auto;
+}
+
+/* EPUB 表格样式 */
+.epub-html-content table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 0.5em 0;
+}
+
+.epub-html-content td,
+.epub-html-content th {
+  padding: 0.5em;
+  border: 1px solid currentColor;
+  opacity: 0.3;
+}
+
+/* 暗色主题适配 */
+.dark .epub-html-content pre,
+.dark .epub-html-content code {
+  background-color: rgba(255, 255, 255, 0.1);
+}
+
+.dark .epub-html-content blockquote {
+  border-left-color: currentColor;
+}
+
+.dark .epub-html-content td,
+.dark .epub-html-content th {
+  border-color: currentColor;
+}
+

@@ -4,8 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { InteractiveProgress } from '@/components/ui/interactive-progress';
 import { ReadingSettingsSidebar } from './reading-settings-sidebar';
-import { useIsMobile } from '@/hooks/use-mobile';
-import { debounce } from 'lodash-es';
+import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
 import type { Book } from '@/types/book';
 import type { ReadingSettings } from '@/types/reading';
 
@@ -36,16 +35,12 @@ export const AutoHideHeader: React.FC<AutoHideHeaderProps> = ({
 }) => {
   const [isVisible, setIsVisible] = useState(true);
   const [hasShownInitially, setHasShownInitially] = useState(false);
-  const [isInitialPeriod, setIsInitialPeriod] = useState(true);
   const [hideTimeout, setHideTimeout] = useState<NodeJS.Timeout | null>(null);
 
   // 可编辑进度数字的状态
   const [isEditingProgress, setIsEditingProgress] = useState(false);
   const [editProgressValue, setEditProgressValue] = useState('');
   const progressInputRef = useRef<HTMLInputElement>(null);
-
-  // 使用现有的移动端检测 hook
-  const isMobile = useIsMobile();
 
   // 统一的清除隐藏定时器函数
   const clearHideTimeout = useCallback(() => {
@@ -61,65 +56,42 @@ export const AutoHideHeader: React.FC<AutoHideHeaderProps> = ({
       const timer = setTimeout(() => {
         setIsVisible(false);
         setHasShownInitially(true);
-        setIsInitialPeriod(false); // 初始期结束，可以开始监听鼠标
       }, 2000);
       return () => clearTimeout(timer);
     }
   }, [hasShownInitially]);
 
-  // 全局鼠标移动处理（仅用于检测鼠标是否在窗口顶部）
-  const handleGlobalMouseMove = useCallback(
-    debounce((e: MouseEvent) => {
-      // 初始期内不响应鼠标移动
-      if (isInitialPeriod) return;
-
-      const currentY = e.clientY;
-      const showThreshold = isMobile ? 60 : 20;
-
-      // 只有当头部隐藏且鼠标在窗口顶部时才显示
-      if (!isVisible && currentY < showThreshold) {
-        setIsVisible(true);
-        clearHideTimeout();
-      }
-    }, 16), // 约60fps
-    [isVisible, isInitialPeriod, isMobile, hideTimeout],
-  );
-
-  // 全局鼠标移动监听器
-  const mouseMoveRef = useRef(handleGlobalMouseMove);
-  mouseMoveRef.current = handleGlobalMouseMove;
-
-  useEffect(() => {
-    const handler = (e: MouseEvent) => mouseMoveRef.current(e);
-    document.addEventListener('mousemove', handler, { passive: true });
-    return () => document.removeEventListener('mousemove', handler);
-  }, []);
-
-  // 移动端点击页面切换显示/隐藏
-  const handleMobileClick = useCallback(
+  // 统一：点击阅读区域切换顶部栏显示/隐藏（移动端与桌面端一致）
+  const handleGlobalClick = useCallback(
     (e: MouseEvent) => {
-      // 只在移动端处理
-      if (!isMobile) return;
+      // 编辑进度期间不处理全局点击
+      if (isEditingProgress) return;
 
-      // 检查是否点击了头部组件本身
+      // 焦点位于可编辑元素时不处理
+      const active = document.activeElement as Element | null;
+      if (active && active.matches('input, textarea, [contenteditable="true"]')) return;
+
       const target = e.target as Element;
-      if (target.closest('[data-header]')) {
-        return; // 点击头部组件不处理
-      }
+      // 点击头部不处理
+      if (target.closest('[data-header]')) return;
+      // 点击阅读设置侧栏不处理
+      if (target.closest('[data-settings-sidebar]')) return;
+      // 排除常见交互元素，避免影响正常操作
+      const interactiveSelector =
+        'button, input, textarea, select, a, [role="button"], [contenteditable="true"]';
+      if (target.closest(interactiveSelector)) return;
 
-      // 切换显示状态
+      // 切换显示/隐藏
       setIsVisible((prev) => !prev);
       clearHideTimeout();
     },
-    [isMobile, clearHideTimeout],
+    [clearHideTimeout, isEditingProgress],
   );
 
   useEffect(() => {
-    if (isMobile) {
-      document.addEventListener('click', handleMobileClick, { passive: true });
-      return () => document.removeEventListener('click', handleMobileClick);
-    }
-  }, [isMobile, handleMobileClick]);
+    document.addEventListener('click', handleGlobalClick, { passive: true });
+    return () => document.removeEventListener('click', handleGlobalClick);
+  }, [handleGlobalClick]);
 
   // 清理定时器
   useEffect(() => {
@@ -127,18 +99,6 @@ export const AutoHideHeader: React.FC<AutoHideHeaderProps> = ({
       clearHideTimeout();
     };
   }, [hideTimeout]);
-
-  // 鼠标离开头部组件时延迟隐藏
-  const handleMouseLeave = useCallback(() => {
-    if (!isInitialPeriod) {
-      // 设置延迟隐藏，给用户视觉停留时间
-      const timeout = setTimeout(() => {
-        setIsVisible(false);
-        setHideTimeout(null);
-      }, 500);
-      setHideTimeout(timeout);
-    }
-  }, [isInitialPeriod]);
 
   // 开始编辑进度
   const handleProgressClick = useCallback(() => {
@@ -196,7 +156,7 @@ export const AutoHideHeader: React.FC<AutoHideHeaderProps> = ({
 
   return (
     <>
-      <div className={headerClassName} onMouseLeave={handleMouseLeave} data-header>
+      <div className={headerClassName} data-header>
         <div className="flex items-center px-4 py-2">
           {/* 左侧：返回按钮和书籍信息 - 按内容自适应 */}
           <div className="flex items-center space-x-4">
@@ -236,13 +196,17 @@ export const AutoHideHeader: React.FC<AutoHideHeaderProps> = ({
                   placeholder="0.00"
                 />
               ) : (
-                <span
-                  className="text-xs text-muted-foreground cursor-pointer hover:text-foreground transition-colors px-1 py-0.5 rounded hover:bg-muted/50"
-                  onClick={handleProgressClick}
-                  title="点击编辑进度"
-                >
-                  {progress.toFixed(2)}%
-                </span>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <span
+                      className="text-xs text-muted-foreground cursor-pointer hover:text-foreground transition-colors px-1 py-0.5 rounded hover:bg-muted/50"
+                      onClick={handleProgressClick}
+                    >
+                      {progress.toFixed(2)}%
+                    </span>
+                  </TooltipTrigger>
+                  <TooltipContent sideOffset={6}>点击编辑进度</TooltipContent>
+                </Tooltip>
               )}
             </div>
           </div>

@@ -172,30 +172,6 @@ export const ReadingSettingsContent: React.FC<ReadingSettingsContentProps> = ({
             </div>
           </div>
 
-          {/* 阅读模式 */}
-          <div className={itemClass}>
-            <Label className={labelClass}>阅读模式</Label>
-            <div className="space-y-2">
-              {readingSettingsService.options.modes.map((mode) => (
-                <Button
-                  key={mode.value}
-                  variant={settings.readingMode === mode.value ? 'default' : 'outline'}
-                  size={buttonSize}
-                  className="w-full justify-start"
-                  onClick={() =>
-                    onSettingsChange({
-                      ...settings,
-                      readingMode: mode.value as any,
-                    })
-                  }
-                  title={mode.description}
-                >
-                  {mode.label}
-                </Button>
-              ))}
-            </div>
-          </div>
-
           {/* 文本对齐 */}
           <div className={itemClass}>
             <Label className={labelClass}>文本对齐</Label>
@@ -347,30 +323,6 @@ export const ReadingSettingsContent: React.FC<ReadingSettingsContentProps> = ({
             </div>
           </div>
 
-          {/* 阅读模式 */}
-          <div className={itemClass}>
-            <Label className={labelClass}>阅读模式</Label>
-            <div className="space-y-2">
-              {readingSettingsService.options.modes.map((mode) => (
-                <Button
-                  key={mode.value}
-                  variant={settings.readingMode === mode.value ? 'default' : 'outline'}
-                  size={buttonSize}
-                  className="w-full justify-start"
-                  onClick={() =>
-                    onSettingsChange({
-                      ...settings,
-                      readingMode: mode.value as any,
-                    })
-                  }
-                  title={mode.description}
-                >
-                  {mode.label}
-                </Button>
-              ))}
-            </div>
-          </div>
-
           {/* 文本对齐 */}
           <div className={itemClass}>
             <Label className={labelClass}>文本对齐</Label>
@@ -432,3 +384,4 @@ export const ReadingSettingsContent: React.FC<ReadingSettingsContentProps> = ({
     </div>
   );
 };
+

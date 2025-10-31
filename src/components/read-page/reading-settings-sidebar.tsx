@@ -37,7 +37,7 @@ export const ReadingSettingsSidebar: React.FC<ReadingSettingsSidebarProps> = ({
   if (isMobile) {
     return (
       <Drawer open={open} onOpenChange={onOpenChange}>
-        <DrawerContent>
+        <DrawerContent data-settings-sidebar>
           <DrawerHeader className="text-left">
             <div className="flex items-center justify-between">
               <div>
@@ -63,7 +63,7 @@ export const ReadingSettingsSidebar: React.FC<ReadingSettingsSidebarProps> = ({
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent side="right" className="w-80">
+      <SheetContent side="right" className="w-80" data-settings-sidebar>
         <SheetHeader>
           <SheetTitle>阅读设置侧栏</SheetTitle>
           <SheetDescription>自定义您的阅读体验，调整字体、主题和布局选项。</SheetDescription>
@@ -77,3 +77,4 @@ export const ReadingSettingsSidebar: React.FC<ReadingSettingsSidebarProps> = ({
     </Sheet>
   );
 };
+

@@ -15,6 +15,7 @@ interface BookStore {
   batchToggleFavorite: (bookIds: number[], favorite: boolean) => void;
   addBook: (newBook: Book) => void;
   removeBook: (bookId: number) => void;
+  updateBook: (bookId: number, updates: Partial<Book>, skipSave?: boolean) => void; // 更新书籍信息
   getBooksByType: (pageType: PageType) => Book[];
   getBookById: (bookId: number) => Book | undefined;
   initializeBooks: () => Promise<void>; // 添加初始化方法
@@ -125,8 +126,9 @@ export const useBookStore = create<BookStore>()(
         const updatedBooks = state.books.filter((book) => book.id !== bookId);
         console.log('成功删除书籍:', bookToRemove.title);
 
-        // 保存到 IndexedDB - 删除书籍
+        // 保存到 IndexedDB - 删除书籍与正文
         storage.deleteBook(bookId).catch(console.error);
+        storage.deleteBookContent(bookId).catch(console.error);
 
         return { books: updatedBooks };
       });
@@ -136,6 +138,28 @@ export const useBookStore = create<BookStore>()(
     getBookById: (bookId: number) => {
       const { books } = get();
       return books.find((book) => book.id === bookId);
+    },
+
+    // 更新书籍信息（用于同步进度等）
+    updateBook: (bookId: number, updates: Partial<Book>, skipSave = false) => {
+      set((state) => {
+        const updatedBooks = state.books.map((book) => {
+          if (book.id === bookId) {
+            return { ...book, ...updates };
+          }
+          return book;
+        });
+
+        // 如果有书籍被更新，保存到 IndexedDB（除非明确跳过）
+        if (!skipSave) {
+          const updatedBook = updatedBooks.find((book) => book.id === bookId);
+          if (updatedBook) {
+            storage.saveBook(updatedBook).catch(console.error);
+          }
+        }
+
+        return { books: updatedBooks };
+      });
     },
 
     // 初始化书籍数据 - 从 IndexedDB 异步加载

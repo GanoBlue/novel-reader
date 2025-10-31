@@ -27,7 +27,7 @@ export function BookFavorite({
       <div className={cn('flex items-center ml-2', className)}>
         <button
           className={cn(
-            'flex items-center space-x-1 hover:opacity-80 transition-opacity  cursor-pointer',
+            'flex items-center space-x-1 transition-opacity  cursor-pointer',
             isFavorite ? 'text-destructive' : 'text-muted-foreground hover:text-destructive',
           )}
           onClick={(e) => {

@@ -1,10 +1,11 @@
-import { BookOpen } from 'lucide-react';
+import { BookOpen, Trash2 } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { cn } from '@/lib/utils';
 import { useBookStore } from '@/store/book-store';
 import { BookCover, BookFavorite, BookProgressInfo, TextWithTooltip } from '.';
 import { formatTime } from '@/lib/time-utils';
+import type { ReadingProgress } from '@/types/book';
 
 interface BookCardProps {
   id: number;
@@ -13,22 +14,16 @@ interface BookCardProps {
   cover: string;
   currentChapter: number;
   totalChapters: number;
-  readingProgress?: {
-    progress: number;
-    paraOffset: number;
-    lastReadAt: string;
-    readingTime: number;
-    currentChapter?: string;
-  };
+  readingProgress?: ReadingProgress;
   variant?: 'library' | 'favorites' | 'history';
   displayMode?: 'grid' | 'list';
-  lastRead?: string;
   totalTime?: number;
   readCount?: number;
   favoriteDate?: string;
   isFavorite?: boolean;
   onRead?: () => void;
   onFavorite?: () => void;
+  onDelete?: () => void;
   className?: string;
 }
 
@@ -47,6 +42,7 @@ export default function BookCard({
   isFavorite: propIsFavorite,
   onRead,
   onFavorite,
+  onDelete,
   className,
 }: BookCardProps) {
   // 从store获取书籍的最新状态
@@ -62,12 +58,21 @@ export default function BookCard({
       >
         <CardContent className="pl-4 pr-4 -mb-2">
           {/* 右上角操作按钮 */}
-          <BookFavorite
-            isFavorite={currentIsFavorite}
-            onFavorite={onFavorite}
-            className="absolute top-2 right-2"
-            variant="button"
-          />
+          <div className="absolute top-2 right-2 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+            <BookFavorite isFavorite={currentIsFavorite} onFavorite={onFavorite} variant="button" />
+            {/* 删除在收藏左边（仅 hover 显示） */}
+            <button
+              className="inline-flex items-center justify-center w-8 h-8 rounded-md bg-destructive/10 hover:bg-destructive/20 text-destructive"
+              onClick={(e) => {
+                e.stopPropagation();
+                onDelete?.();
+              }}
+              aria-label="删除书籍"
+              title="删除书籍"
+            >
+              <Trash2 className="w-4 h-4" />
+            </button>
+          </div>
 
           {/* 书籍封面 */}
           <div className="flex items-center justify-center mb-3">
@@ -94,6 +99,7 @@ export default function BookCard({
               progress={readingProgress?.progress || 0}
               totalTime={totalTime}
               readCount={readCount}
+              lastReadAt={readingProgress?.lastReadAt}
               variant={variant}
               favoriteDate={favoriteDate}
             />
@@ -152,12 +158,25 @@ export default function BookCard({
               </TextWithTooltip>
 
               {/* 收藏状态指示器 */}
-              <BookFavorite
-                isFavorite={currentIsFavorite}
-                onFavorite={onFavorite}
-                variant="indicator"
-                showLabel={true}
-              />
+              <div className="flex items-center gap-2 ml-auto">
+                <BookFavorite
+                  isFavorite={currentIsFavorite}
+                  onFavorite={onFavorite}
+                  variant="indicator"
+                  showLabel={true}
+                />
+                <button
+                  className="inline-flex items-center justify-center w-7 h-7 rounded-md bg-destructive/10 hover:bg-destructive/20 text-destructive"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onDelete?.();
+                  }}
+                  aria-label="删除书籍"
+                  title="删除书籍"
+                >
+                  <Trash2 className="w-4 h-4" />
+                </button>
+              </div>
             </div>
 
             {/* 进度信息 */}
@@ -166,6 +185,7 @@ export default function BookCard({
               progress={readingProgress?.progress || 0}
               totalTime={totalTime}
               readCount={readCount}
+              lastReadAt={readingProgress?.lastReadAt}
               progressSize="small"
               displayMode="list"
               className="mt-2"

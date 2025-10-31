@@ -3,7 +3,7 @@
  * 集中管理图书相关的所有类型
  */
 
-import type { FileFormat, ThemeType, ReadingMode, TextAlign } from './common';
+import type { FileFormat, ThemeType, TextAlign } from './common';
 
 // 阅读进度信息
 export interface ReadingProgress {
@@ -13,6 +13,7 @@ export interface ReadingProgress {
   lastReadAt: string; // ISO 时间字符串
   readingTime: number; // 阅读时长（分钟）
   currentChapter?: string; // 当前章节标题
+  sessionStartTime?: string; // 当前阅读会话开始时间（ISO 时间字符串）
 }
 
 // 图书基础信息
@@ -25,7 +26,6 @@ export interface Book {
   fileSize?: number;
   currentChapter: number;
   totalChapters: number;
-  lastReadDate?: string;
   totalTime?: number;
   readCount?: number;
   favoriteDate?: string;

@@ -9,9 +9,6 @@ export type FileFormat = 'txt' | 'epub';
 // 主题相关类型
 export type ThemeType = 'light' | 'dark' | 'sepia' | 'green';
 
-// 阅读模式类型
-export type ReadingMode = 'scroll' | 'flip';
-
 // 文本对齐类型
 export type TextAlign = 'left' | 'center' | 'justify';
 

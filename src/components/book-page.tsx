@@ -1,8 +1,9 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useMemo, useEffect, useRef } from 'react';
 // 用于解压 .txt.gz 文本（仅在本地解析，不上传）
 import pako from 'pako';
-import { Plus, Search, Settings, Grid, List, Heart } from 'lucide-react';
+import { Plus, Search, Settings, Grid, List, Heart, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { BookCard } from './book-card';
 import { useBooks } from '@/hooks/use-books';
 import type { PageType } from '@/types/common';
@@ -12,6 +13,8 @@ import type { UploadProps } from 'antd';
 import { useNavigate } from 'react-router-dom';
 import storage from '@/services/storage';
 import { useI18n } from '@/services/i18n';
+import { parseEpubFileToBlocks, extractEpubMetadata } from '@/services/epub';
+import { debounce } from '@/lib/utils';
 
 interface BookPageProps {
   pageType: PageType;
@@ -39,13 +42,68 @@ const pageConfig = {
 
 export function BookPage({ pageType }: BookPageProps) {
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
-  const { books, toggleFavorite, addBook, isLoading } = useBooks({
+  const [searchQuery, setSearchQuery] = useState<string>('');
+  const [debouncedSearchQuery, setDebouncedSearchQuery] = useState<string>('');
+  const { books, toggleFavorite, addBook, removeBook, isLoading } = useBooks({
     pageType,
   });
   const navigate = useNavigate();
   const { t } = useI18n();
 
   const config = pageConfig[pageType];
+
+  // 创建防抖更新函数
+  const debouncedUpdate = useRef(
+    debounce((value: string) => {
+      setDebouncedSearchQuery(value);
+    }, 300),
+  ).current;
+
+  // 当搜索输入变化时，使用防抖更新实际搜索关键词
+  useEffect(() => {
+    debouncedUpdate(searchQuery);
+    // 清理函数：组件卸载时取消待执行的防抖调用
+    return () => {
+      debouncedUpdate.cancel();
+    };
+  }, [searchQuery, debouncedUpdate]);
+
+  // 清除搜索（立即清除，不使用防抖）
+  const clearSearch = useCallback(() => {
+    setSearchQuery('');
+    setDebouncedSearchQuery('');
+    debouncedUpdate.cancel(); // 取消待执行的防抖调用
+  }, [debouncedUpdate]);
+
+  // 搜索过滤书籍（使用防抖后的搜索关键词）
+  const filteredBooks = useMemo(() => {
+    if (!debouncedSearchQuery.trim()) {
+      return books;
+    }
+
+    const query = debouncedSearchQuery.toLowerCase().trim();
+    return books.filter((book) => {
+      const titleMatch = book.title.toLowerCase().includes(query);
+      const authorMatch = book.author.toLowerCase().includes(query);
+      return titleMatch || authorMatch;
+    });
+  }, [books, debouncedSearchQuery]);
+
+  // 按最近阅读时间排序（有阅读记录的优先，然后按时间倒序）
+  const sortedBooks = useMemo(() => {
+    return [...filteredBooks].sort((a, b) => {
+      const aLastRead = a.readingProgress?.lastReadAt;
+      const bLastRead = b.readingProgress?.lastReadAt;
+
+      // 如果都没有阅读记录，保持原顺序
+      if (!aLastRead && !bLastRead) return 0;
+      // 有阅读记录的排在前面
+      if (!aLastRead) return 1;
+      if (!bLastRead) return -1;
+      // 都有阅读记录，按时间倒序（最近阅读的在前）
+      return new Date(bLastRead).getTime() - new Date(aLastRead).getTime();
+    });
+  }, [filteredBooks]);
 
   // 尝试以多种常见编码解码二进制到字符串（优先utf-8，回退gb18030、big5）
   const decodeArrayBufferWithFallback = useCallback(async (buf: ArrayBuffer): Promise<string> => {
@@ -71,7 +129,7 @@ export function BookPage({ pageType }: BookPageProps) {
   // 自定义上传处理 - 添加到zustand store
   const customRequest: UploadProps['customRequest'] = useCallback(
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    (options: any) => {
+    async (options: any) => {
       const { file, onSuccess, onError } = options;
 
       try {
@@ -115,7 +173,6 @@ export function BookPage({ pageType }: BookPageProps) {
               fileSize: file.size,
               currentChapter: 1,
               totalChapters: 1,
-              lastReadDate: new Date().toISOString().split('T')[0],
               totalTime: 0,
               readCount: 0,
               isFavorite: false,
@@ -123,18 +180,15 @@ export function BookPage({ pageType }: BookPageProps) {
             };
             addBook(newBook);
 
-            // 将正文写入 IndexedDB，避免 localStorage 配额问题
+            // 将正文写入 IndexedDB
             if (textContent) {
               storage.saveBookContent(newBook.id, textContent).catch(() => {
-                // 忽略兜底：现已完全移除 localStorage 存储正文
                 console.warn('保存正文到 IndexedDB 失败');
               });
             }
 
-            setTimeout(() => {
-              toast.success(`${fileName} 导入成功！`);
-              onSuccess?.(newBook);
-            }, 300);
+            toast.success(`${fileName} 导入成功！`);
+            onSuccess?.(newBook);
           };
           fr.onerror = () => {
             toast.error('读取文件失败');
@@ -143,18 +197,33 @@ export function BookPage({ pageType }: BookPageProps) {
           fr.readAsArrayBuffer(file as File);
           return;
         }
+        // 非txt（如epub）解析为 Blocks 并入库
+        // 先提取 EPUB 元数据（标题、作者、封面）
+        let epubMetadata;
+        try {
+          epubMetadata = await extractEpubMetadata(file as File);
+        } catch (e) {
+          console.warn('EPUB 元数据提取失败，使用默认值:', e);
+          epubMetadata = {};
+        }
 
-        // 非txt（如epub）先不处理正文，仅入库元信息
+        // 生成默认封面（如果没有提取到封面）
+        const getDefaultCover = () => {
+          const colors = ['blue', 'green', 'purple', 'red', 'yellow'];
+          const color1 = colors[Math.floor(Math.random() * colors.length)];
+          const color2 = colors[Math.floor(Math.random() * colors.length)];
+          return `from-${color1}-400 to-${color2}-600`;
+        };
+
         const newBook = {
           id: Date.now(), // 使用时间戳作为ID
-          title: fileName.replace(/\.(txt|txt\.gz|epub)$/i, ''), // 移除文件扩展名作为标题
-          author: '未知作者', // 默认作者
-          cover: `from-${['blue', 'green', 'purple', 'red', 'yellow'][Math.floor(Math.random() * 5)]}-400 to-${['blue', 'green', 'purple', 'red', 'yellow'][Math.floor(Math.random() * 5)]}-600`, // 随机封面颜色
+          title: epubMetadata.title || fileName.replace(/\.(txt|txt\.gz|epub)$/i, ''), // 使用 EPUB 标题或文件名
+          author: epubMetadata.author || '未知作者', // 使用 EPUB 作者或默认值
+          cover: epubMetadata.cover || getDefaultCover(), // 使用 EPUB 封面或随机渐变
           format: 'epub' as const,
           fileSize: file.size,
           currentChapter: 1,
           totalChapters: 1,
-          lastReadDate: new Date().toISOString().split('T')[0],
           totalTime: 0,
           readCount: 0,
           isFavorite: false,
@@ -164,11 +233,19 @@ export function BookPage({ pageType }: BookPageProps) {
         // 添加到zustand store
         addBook(newBook);
 
-        // 模拟上传延迟
-        setTimeout(() => {
-          toast.success(`${fileName} 导入成功！`);
-          onSuccess?.(newBook);
-        }, 500);
+        try {
+          const blocks = await parseEpubFileToBlocks(file as File);
+          const payload = JSON.stringify({ __type: 'blocks', blocks });
+          await storage.saveBookContent(newBook.id, payload);
+        } catch (e) {
+          console.error(e);
+          toast.error((e as Error).message);
+          onError?.(new Error('EPUB 解析失败，仅保存元信息'));
+          return;
+        }
+
+        toast.success(`${fileName} 导入成功！`);
+        onSuccess?.(newBook);
       } catch (error) {
         toast.error('导入失败，请重试');
         onError?.(error as Error);
@@ -212,33 +289,47 @@ export function BookPage({ pageType }: BookPageProps) {
       {/* 顶部导航栏 */}
       <div className="border-b border-border">
         <div className="mx-auto px-6 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-8">
+          <div className="flex items-center justify-between gap-4">
+            <div className="flex items-center space-x-8 flex-1">
               <h1 className="text-2xl font-bold text-foreground">
                 {pageType === 'library' ? t('library_title') : t('favorites_title')}
               </h1>
-              <div className="flex items-center space-x-4">
-                <Button variant="outline">
-                  <Search className="h-4 w-4 mr-2" />
-                  {pageType === 'library' ? t('library_search') : t('favorites_search')}
-                </Button>
-                {config.importButton && (
-                  <Upload
-                    name="file"
-                    multiple
-                    accept=".txt,.txt.gz,.epub"
-                    customRequest={customRequest}
-                    showUploadList={false}
+              <div className="relative flex-1 max-w-md">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+                <Input
+                  type="text"
+                  placeholder={config.searchPlaceholder}
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="pl-9 pr-9"
+                />
+                {searchQuery && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="absolute right-1 top-1/2 transform -translate-y-1/2 h-7 w-7 p-0"
+                    onClick={clearSearch}
                   >
-                    <Button>
-                      <Plus className="h-4 w-4 mr-2" />
-                      {t('import_book')}
-                    </Button>
-                  </Upload>
+                    <X className="h-4 w-4" />
+                  </Button>
                 )}
               </div>
             </div>
             <div className="flex items-center space-x-2">
+              {config.importButton && (
+                <Upload
+                  name="file"
+                  multiple
+                  accept=".txt,.txt.gz,.epub"
+                  customRequest={customRequest}
+                  showUploadList={false}
+                >
+                  <Button className="mr-2">
+                    <Plus />
+                    {t('import_book')}
+                  </Button>
+                </Upload>
+              )}
               <Button
                 variant={viewMode === 'grid' ? 'default' : 'ghost'}
                 size="sm"
@@ -272,11 +363,11 @@ export function BookPage({ pageType }: BookPageProps) {
             <h3 className="text-lg font-medium text-foreground mb-2">正在加载书架...</h3>
             <p className="text-muted-foreground">从本地存储中读取您的图书</p>
           </div>
-        ) : books.length > 0 ? (
+        ) : sortedBooks.length > 0 ? (
           <>
             {viewMode === 'grid' ? (
               <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-3">
-                {books.map((book) => (
+                {sortedBooks.map((book) => (
                   <BookCard
                     key={book.id}
                     {...book}
@@ -284,12 +375,13 @@ export function BookPage({ pageType }: BookPageProps) {
                     displayMode="grid"
                     onRead={() => openReader(book.id)}
                     onFavorite={() => toggleFavorite(book.id)}
+                    onDelete={() => removeBook(book.id)}
                   />
                 ))}
               </div>
             ) : (
               <div className="space-y-4">
-                {books.map((book) => (
+                {sortedBooks.map((book) => (
                   <BookCard
                     key={book.id}
                     {...book}
@@ -297,12 +389,27 @@ export function BookPage({ pageType }: BookPageProps) {
                     displayMode="list"
                     onRead={() => openReader(book.id)}
                     onFavorite={() => toggleFavorite(book.id)}
+                    onDelete={() => removeBook(book.id)}
                     className="p-4"
                   />
                 ))}
               </div>
             )}
           </>
+        ) : debouncedSearchQuery.trim() ? (
+          /* 搜索无结果 */
+          <div className="text-center py-12">
+            <div className="w-24 h-24 bg-muted rounded-full flex items-center justify-center mx-auto mb-4">
+              <Search className="text-3xl text-muted-foreground" />
+            </div>
+            <h3 className="text-lg font-medium text-foreground mb-2">未找到相关书籍</h3>
+            <p className="text-muted-foreground mb-6">
+              没有找到与"{debouncedSearchQuery}"相关的书籍，请尝试其他关键词
+            </p>
+            <Button variant="outline" onClick={clearSearch}>
+              清除搜索
+            </Button>
+          </div>
         ) : (
           /* 空状态提示 */
           <div className="text-center py-12">
@@ -329,3 +436,4 @@ export function BookPage({ pageType }: BookPageProps) {
     </div>
   );
 }
+

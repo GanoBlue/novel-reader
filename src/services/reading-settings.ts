@@ -11,7 +11,6 @@ export const defaultReadingSettings: ReadingSettings = {
   fontSize: 18,
   lineHeight: 1.6,
   theme: 'light',
-  readingMode: 'scroll',
   autoScroll: false,
   autoScrollSpeed: 1,
   fontFamily: 'system-ui',
@@ -142,12 +141,6 @@ export const themeOptions = [
   { value: 'green', label: '绿色', description: '绿色背景，深绿文字' },
 ];
 
-// 阅读模式选项
-export const readingModeOptions = [
-  { value: 'scroll', label: '滚动模式', description: '连续滚动阅读' },
-  { value: 'flip', label: '翻页模式', description: '分页翻页阅读' },
-];
-
 // 添加配置监听器
 export const addSettingsListener = (listener: (settings: ReadingSettings) => void): void => {
   config.addListener(SETTINGS_KEY, listener);
@@ -170,7 +163,6 @@ export const readingSettingsService = {
   options: {
     fonts: fontOptions,
     themes: themeOptions,
-    modes: readingModeOptions,
   },
 };
 

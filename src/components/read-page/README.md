@@ -30,8 +30,6 @@ read-page/
 ├── flip-reader.tsx                # 翻页模式组件
 ├── reading-settings-sidebar.tsx   # 阅读设置侧边栏
 ├── chapter-navigation.tsx        # 章节导航组件
-├── reading-stats.tsx             # 阅读统计组件
-├── side-menu.tsx                 # 侧边菜单组件
 ├── MEMORY_OPTIMIZATION.md        # 内存优化说明文档
 └── README.md                     # 说明文档
 ```
@@ -176,3 +174,4 @@ import { ReadPage } from '@/components/read-page/read-page';
 3. **功能扩展**: 优先实现书签和笔记功能
 4. **格式支持**: 考虑添加EPUB、PDF等格式支持
 5. **云端同步**: 实现跨设备数据同步
+
