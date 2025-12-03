@@ -37,6 +37,10 @@ Thumbs.db
 *.swo
 *~
 
+# Cloudflare
+.wrangler/
+wrangler.toml
+
 # 临时文件
 tmp/
 temp/

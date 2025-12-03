@@ -9,11 +9,14 @@ import BlockVirtualReader, {
   BlockVirtualReaderRef,
 } from '@/components/read-page/block-virtual-reader';
 import type { Block } from '@/types/block';
+import type { ChapterMetadata } from '@/types/book';
 import { AutoHideHeader } from '@/components/read-page/auto-hide-header';
+import { ChapterNavigation } from '@/components/read-page/chapter-navigation';
+import { ChapterNavigationErrorBoundary } from '@/components/read-page/chapter-navigation-error-boundary';
 import { readingSettingsService, defaultReadingSettings } from '@/services/reading-settings';
 import type { ReadingSettings } from '@/types/reading';
 import { readingProgressService } from '@/services/reading-progress';
-import { debounce } from 'lodash-es';
+import { debounce, throttle } from 'lodash-es';
 
 export default function Read() {
   const { bookId } = useParams<{ bookId: string }>();
@@ -24,10 +27,13 @@ export default function Read() {
   const [book, setBook] = useState<any>(null);
   const [paragraphs, setParagraphs] = useState<string[]>([]); // 文本段落
   const [blocks, setBlocks] = useState<Block[] | null>(null); // Block 列表（EPUB等）
+  const [chapters, setChapters] = useState<ChapterMetadata[]>([]); // 章节元数据
   const [currentIndex, setCurrentIndex] = useState<number>(0); // 当前在页面中央显示的文字的索引
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [showSettings, setShowSettings] = useState<boolean>(false);
   const [settings, setSettings] = useState<ReadingSettings>(defaultReadingSettings);
+  const [showChapterNav, setShowChapterNav] = useState<boolean>(false); // 章节导航侧边栏显示状态
+  const [currentChapterIndex, setCurrentChapterIndex] = useState<number>(0); // 当前章节索引
 
   // 引用
   const virtualReaderRef = useRef<VirtualReaderRef>(null);
@@ -57,6 +63,10 @@ export default function Read() {
           const parsed = JSON.parse(bookContent);
           if (parsed && parsed.__type === 'blocks' && Array.isArray(parsed.blocks)) {
             setBlocks(parsed.blocks as Block[]);
+            // 加载章节元数据（如果存在）
+            if (Array.isArray(parsed.chapters)) {
+              setChapters(parsed.chapters as ChapterMetadata[]);
+            }
           } else {
             const lines = String(bookContent).split('\n');
             setParagraphs(lines);
@@ -114,15 +124,77 @@ export default function Read() {
     [saveProgress],
   );
 
+  // 使用二分查找优化章节索引查找性能
+  const findChapterIndex = useCallback(
+    (blockIndex: number): number => {
+      if (chapters.length === 0) return -1;
+
+      // 二分查找：找到最后一个 blockStartIndex <= blockIndex 的章节
+      let left = 0;
+      let right = chapters.length - 1;
+      let result = -1;
+
+      while (left <= right) {
+        const mid = Math.floor((left + right) / 2);
+        if (chapters[mid].blockStartIndex <= blockIndex) {
+          result = mid;
+          left = mid + 1;
+        } else {
+          right = mid - 1;
+        }
+      }
+
+      return result;
+    },
+    [chapters],
+  );
+
+  // 更新章节索引（节流处理）
+  const updateChapterIndex = useCallback(
+    (blockIndex: number) => {
+      if (chapters.length === 0) return;
+
+      try {
+        // 使用二分查找快速定位章节
+        const chapterIndex = findChapterIndex(blockIndex);
+
+        // 使用函数式更新，只在章节真正改变时更新状态
+        setCurrentChapterIndex((prevIndex) => {
+          if (chapterIndex !== -1 && chapterIndex !== prevIndex) {
+            return chapterIndex;
+          } else if (chapterIndex === -1 && chapters.length > 0 && prevIndex !== 0) {
+            return 0;
+          }
+          return prevIndex;
+        });
+      } catch (err) {
+        console.error('[ChapterNav] 更新当前章节索引失败:', err);
+      }
+    },
+    [chapters, findChapterIndex],
+  );
+
+  // 创建节流函数用于更新章节索引
+  const throttledUpdateChapterIndex = useCallback(
+    throttle((blockIndex: number) => {
+      updateChapterIndex(blockIndex);
+    }, 200), // 每 200ms 最多执行一次
+    [updateChapterIndex],
+  );
+
   // 处理范围变化
   const handleRangeChanged = useCallback(
     (range: { startIndex: number; endIndex: number }) => {
       // 更新本地状态，确保UI响应
       setCurrentIndex(range.startIndex);
 
+      // 防抖保存进度
       debouncedSaveProgress(range.startIndex);
+
+      // 节流更新章节索引
+      throttledUpdateChapterIndex(range.endIndex);
     },
-    [paragraphs.length, debouncedSaveProgress],
+    [debouncedSaveProgress, throttledUpdateChapterIndex],
   );
 
   // 计算阅读进度（保留小数点后两位）
@@ -158,6 +230,61 @@ export default function Read() {
     setSettings(newSettings);
     await readingSettingsService.save(newSettings);
   }, []);
+
+  // 打开章节导航侧边栏
+  const handleOpenChapterNav = useCallback(() => {
+    setShowChapterNav(true);
+  }, []);
+
+  // 关闭章节导航侧边栏
+  const handleCloseChapterNav = useCallback(() => {
+    setShowChapterNav(false);
+  }, []);
+
+  // 处理章节选择（跳转到指定章节）
+  const handleChapterSelect = useCallback(
+    (chapterIndex: number) => {
+      // 验证章节索引
+      if (chapterIndex < 0 || chapterIndex >= chapters.length) {
+        console.warn(`[ChapterNav] 无效的章节索引: ${chapterIndex}`);
+        toast.error('无法跳转到该章节');
+        return;
+      }
+
+      const chapter = chapters[chapterIndex];
+      const targetIndex = chapter.blockStartIndex;
+
+      // 验证目标索引
+      const totalBlocks = blocks ? blocks.length : paragraphs.length;
+      if (targetIndex < 0 || targetIndex >= totalBlocks) {
+        console.warn(`[ChapterNav] 无效的目标索引: ${targetIndex}`);
+        toast.error('章节位置无效');
+        return;
+      }
+
+      // 检查章节是否为空
+      if (chapter.blockStartIndex === chapter.blockEndIndex) {
+        toast.warning('该章节内容为空');
+      }
+
+      // 跳转到章节起始位置
+      try {
+        if (blocks) {
+          blockReaderRef.current?.scrollToIndex(targetIndex);
+        } else {
+          virtualReaderRef.current?.scrollToIndex(targetIndex);
+        }
+      } catch (err) {
+        console.error('[ChapterNav] 跳转失败:', err);
+        toast.error('跳转失败，请重试');
+        return;
+      }
+
+      // 关闭侧边栏
+      setShowChapterNav(false);
+    },
+    [chapters, blocks, paragraphs.length],
+  );
 
   // 初始化
   useEffect(() => {
@@ -245,6 +372,8 @@ export default function Read() {
         onSettingsChange={saveSettings}
         progress={getProgress()}
         onProgressChange={handleProgressChange}
+        onOpenChapterNav={handleOpenChapterNav}
+        hasChapters={chapters.length > 0}
       />
 
       <div className="w-full h-full" style={readingSettingsService.generateStyles(settings)}>
@@ -270,6 +399,19 @@ export default function Read() {
           </div>
         )}
       </div>
+
+      {/* 章节导航侧边栏 */}
+      {chapters.length > 0 && (
+        <ChapterNavigationErrorBoundary>
+          <ChapterNavigation
+            chapters={chapters}
+            currentChapterIndex={currentChapterIndex}
+            onChapterSelect={handleChapterSelect}
+            isOpen={showChapterNav}
+            onClose={handleCloseChapterNav}
+          />
+        </ChapterNavigationErrorBoundary>
+      )}
     </div>
   );
 }

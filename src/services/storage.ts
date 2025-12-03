@@ -95,7 +95,7 @@ class IndexedDBStorage {
   }
 
   // ========== 书籍内容存储 ==========
-  // 保存书籍内容
+  // 保存书籍内容（支持 StoredBookContent 格式，包含 chapters 元数据）
   async saveBookContent(bookId: number, content: string) {
     const db = await this.dbPromise;
     const transaction = db.transaction(['bookContents'], 'readwrite');

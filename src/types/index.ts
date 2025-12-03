@@ -9,6 +9,9 @@ export * from './common';
 // 导出图书相关类型
 export * from './book';
 
+// 导出内容块相关类型
+export * from './block';
+
 // 导出阅读相关类型
 export * from './reading';
 

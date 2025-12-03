@@ -11,6 +11,7 @@ interface VirtualReaderProps {
 
 export interface VirtualReaderRef {
   scrollToProgress: (progress: number) => void;
+  scrollToIndex: (index: number) => void;
 }
 
 const VirtualReader = forwardRef<VirtualReaderRef, VirtualReaderProps>(
@@ -36,13 +37,28 @@ const VirtualReader = forwardRef<VirtualReaderRef, VirtualReaderProps>(
       [paragraphs.length],
     );
 
+    // 处理跳转到指定索引
+    const handleScrollToIndex = useCallback(
+      (index: number) => {
+        if (!virtuosoRef.current || !paragraphs.length) return;
+        const clampedIndex = Math.max(0, Math.min(index, paragraphs.length - 1));
+        virtuosoRef.current.scrollToIndex({
+          index: clampedIndex,
+          align: 'start',
+          behavior: 'smooth',
+        });
+      },
+      [paragraphs.length],
+    );
+
     // 暴露方法给父组件
     useImperativeHandle(
       ref,
       () => ({
         scrollToProgress: handleProgressChange,
+        scrollToIndex: handleScrollToIndex,
       }),
-      [handleProgressChange],
+      [handleProgressChange, handleScrollToIndex],
     );
 
     // 处理范围变化
@@ -59,7 +75,14 @@ const VirtualReader = forwardRef<VirtualReaderRef, VirtualReaderProps>(
       (index: number) => {
         const line = paragraphs[index];
         return (
-          <div className="px-4 py-2 reading-content" style={{ minHeight: '3rem' }}>
+          <div
+            className="reading-content"
+            style={{
+              paddingTop: '0.5rem',
+              paddingBottom: '0.5rem',
+              minHeight: '3rem',
+            }}
+          >
             <p
               className="mb-4 whitespace-pre-wrap"
               style={{
@@ -91,13 +114,13 @@ const VirtualReader = forwardRef<VirtualReaderRef, VirtualReaderProps>(
         // 使用固定高度提高滚动条精度
         fixedItemHeight={48}
         // 虚拟列表性能配置（优化滚动顺滑度）
-        overscan={5} // 预渲染项目，减少初始位置偏移
+        overscan={10} // 预渲染项目，减少初始位置偏移
         increaseViewportBy={50} // 视口扩展，减少初始位置偏移
         alignToBottom={false} // 不底部对齐，保持正常阅读体验
         // 使用 rangeChanged 事件，更准确地反映用户阅读位置
         rangeChanged={handleRangeChanged}
         // 初始位置恢复，不知道为什么，Virtuoso的initialTopMostItemIndex会偏移2-3个位置
-        initialTopMostItemIndex={currentIndex + 2}
+        initialTopMostItemIndex={Math.max(0, currentIndex)}
       />
     );
   },
@@ -106,3 +129,4 @@ const VirtualReader = forwardRef<VirtualReaderRef, VirtualReaderProps>(
 VirtualReader.displayName = 'VirtualReader';
 
 export default VirtualReader;
+

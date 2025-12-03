@@ -46,3 +46,12 @@ export interface Chapter {
   readProgress: number;
 }
 
+// 章节元数据（用于 EPUB 解析）
+export interface ChapterMetadata {
+  id: string; // 章节唯一标识符（来自 EPUB spine）
+  title: string; // 章节标题（来自 <title> 元素）
+  index: number; // 章节序号（从 0 开始）
+  blockStartIndex: number; // 该章节在 blocks 数组中的起始索引
+  blockEndIndex: number; // 该章节在 blocks 数组中的结束索引（不包含）
+}
+

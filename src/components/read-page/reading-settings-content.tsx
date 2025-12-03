@@ -118,20 +118,26 @@ export const ReadingSettingsContent: React.FC<ReadingSettingsContentProps> = ({
             <Label className={labelClass}>字体</Label>
             <Select
               value={settings.fontFamily}
-              onValueChange={(value) =>
+              onValueChange={(value) => {
                 onSettingsChange({
                   ...settings,
                   fontFamily: value,
-                })
-              }
+                });
+              }}
             >
               <SelectTrigger className={selectTriggerClass}>
-                <SelectValue />
+                <SelectValue>
+                  <span style={{ fontFamily: settings.fontFamily }}>
+                    {readingSettingsService.options.fonts.find(
+                      (f) => f.value === settings.fontFamily,
+                    )?.label || '选择字体'}
+                  </span>
+                </SelectValue>
               </SelectTrigger>
               <SelectContent>
                 {readingSettingsService.options.fonts.map((font) => (
                   <SelectItem key={font.value} value={font.value}>
-                    {font.label}
+                    <span style={{ fontFamily: font.value }}>{font.label}</span>
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -211,7 +217,7 @@ export const ReadingSettingsContent: React.FC<ReadingSettingsContentProps> = ({
               }
               min={0}
               max={50}
-              step={5}
+              step={1}
               className={sliderClass}
             />
           </div>
@@ -278,12 +284,17 @@ export const ReadingSettingsContent: React.FC<ReadingSettingsContentProps> = ({
             }
           >
             <SelectTrigger className={selectTriggerClass}>
-              <SelectValue />
+              <SelectValue>
+                <span style={{ fontFamily: settings.fontFamily }}>
+                  {readingSettingsService.options.fonts.find((f) => f.value === settings.fontFamily)
+                    ?.label || '选择字体'}
+                </span>
+              </SelectValue>
             </SelectTrigger>
             <SelectContent>
               {readingSettingsService.options.fonts.map((font) => (
                 <SelectItem key={font.value} value={font.value}>
-                  {font.label}
+                  <span style={{ fontFamily: font.value }}>{font.label}</span>
                 </SelectItem>
               ))}
             </SelectContent>

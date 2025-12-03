@@ -41,7 +41,7 @@ export const ReadingSettingsSidebar: React.FC<ReadingSettingsSidebarProps> = ({
           <DrawerHeader className="text-left">
             <div className="flex items-center justify-between">
               <div>
-                <DrawerTitle className="text-xl font-semibold">阅读设置侧栏</DrawerTitle>
+                <DrawerTitle className="text-xl font-semibold">阅读设置</DrawerTitle>
                 <DrawerDescription>
                   自定义您的阅读体验，调整字体、主题和布局选项。
                 </DrawerDescription>
@@ -65,7 +65,7 @@ export const ReadingSettingsSidebar: React.FC<ReadingSettingsSidebarProps> = ({
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent side="right" className="w-80" data-settings-sidebar>
         <SheetHeader>
-          <SheetTitle>阅读设置侧栏</SheetTitle>
+          <SheetTitle>阅读设置</SheetTitle>
           <SheetDescription>自定义您的阅读体验，调整字体、主题和布局选项。</SheetDescription>
         </SheetHeader>
         <ReadingSettingsContent

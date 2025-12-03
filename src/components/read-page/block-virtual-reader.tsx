@@ -1,4 +1,4 @@
-import React, { useRef, useCallback, forwardRef, useImperativeHandle, useMemo } from 'react';
+import { useRef, useCallback, forwardRef, useImperativeHandle } from 'react';
 import { Virtuoso } from 'react-virtuoso';
 import type { ReadingSettings } from '@/types/reading';
 import type { Block } from '@/types/block';
@@ -12,6 +12,7 @@ interface BlockVirtualReaderProps {
 
 export interface BlockVirtualReaderRef {
   scrollToProgress: (progress: number) => void;
+  scrollToIndex: (index: number) => void;
 }
 
 const BlockVirtualReader = forwardRef<BlockVirtualReaderRef, BlockVirtualReaderProps>(
@@ -32,12 +33,26 @@ const BlockVirtualReader = forwardRef<BlockVirtualReaderRef, BlockVirtualReaderP
       [blocks.length],
     );
 
+    const handleScrollToIndex = useCallback(
+      (index: number) => {
+        if (!virtuosoRef.current || !blocks.length) return;
+        const clampedIndex = Math.max(0, Math.min(index, blocks.length - 1));
+        virtuosoRef.current.scrollToIndex({
+          index: clampedIndex,
+          align: 'start',
+          behavior: 'auto',
+        });
+      },
+      [blocks.length],
+    );
+
     useImperativeHandle(
       ref,
       () => ({
         scrollToProgress: handleProgressChange,
+        scrollToIndex: handleScrollToIndex,
       }),
-      [handleProgressChange],
+      [handleProgressChange, handleScrollToIndex],
     );
 
     const handleRangeChangedCb = useCallback(
@@ -55,7 +70,7 @@ const BlockVirtualReader = forwardRef<BlockVirtualReaderRef, BlockVirtualReaderP
         switch (block.type) {
           case 'paragraph':
             return (
-              <div className="px-4 py-2 reading-content">
+              <div className="reading-content">
                 <p
                   className="mb-4 whitespace-pre-wrap"
                   style={{
@@ -69,27 +84,25 @@ const BlockVirtualReader = forwardRef<BlockVirtualReaderRef, BlockVirtualReaderP
                 </p>
               </div>
             );
-          case 'html':
-            // 使用 div 包装 HTML 内容，应用样式和格式
+          case 'html': {
+            // EPUB 格式：使用原生标签，不应用外置样式，只保留 EPUB 自带的样式
+            const Tag = (block.tag || 'div') as keyof React.JSX.IntrinsicElements;
+
+            // 包裹在 epub-html-content 容器中，使 CSS 样式生效
             return (
-              <div className="px-4 py-2 reading-content">
-                <div
-                  className="mb-4 epub-html-content"
-                  data-block-id={block.id}
-                  data-original-tag={block.tag}
-                  style={{
-                    fontSize: `${settings.fontSize}px`,
-                    lineHeight: settings.lineHeight,
-                    textAlign: settings.textAlign,
-                    minHeight: `${settings.fontSize * settings.lineHeight}px`,
-                  }}
-                  dangerouslySetInnerHTML={{ __html: block.html }}
-                />
+              <div className="epub-html-content">
+                <Tag data-block-id={block.id} dangerouslySetInnerHTML={{ __html: block.html }} />
               </div>
             );
+          }
           case 'image':
             return (
-              <div className="px-4 py-3">
+              <div
+                style={{
+                  paddingTop: '0.75rem',
+                  paddingBottom: '0.75rem',
+                }}
+              >
                 <img
                   src={block.src}
                   alt={block.alt || ''}
@@ -100,7 +113,12 @@ const BlockVirtualReader = forwardRef<BlockVirtualReaderRef, BlockVirtualReaderP
             );
           case 'video':
             return (
-              <div className="px-4 py-3">
+              <div
+                style={{
+                  paddingTop: '0.75rem',
+                  paddingBottom: '0.75rem',
+                }}
+              >
                 <video
                   src={block.src}
                   poster={block.poster}
@@ -112,7 +130,12 @@ const BlockVirtualReader = forwardRef<BlockVirtualReaderRef, BlockVirtualReaderP
             );
           case 'embed':
             return (
-              <div className="px-4 py-3">
+              <div
+                style={{
+                  paddingTop: '0.75rem',
+                  paddingBottom: '0.75rem',
+                }}
+              >
                 {/* 占位：未来可根据 component 渲染自定义组件 */}
                 <div className="text-xs text-muted-foreground">未实现的嵌入：{block.component}</div>
               </div>
@@ -131,7 +154,7 @@ const BlockVirtualReader = forwardRef<BlockVirtualReaderRef, BlockVirtualReaderP
         itemContent={renderBlock}
         // 使用可变高度模式，不设置 fixedItemHeight
         // Virtuoso 会自动测量每个项目的高度
-        overscan={3}
+        overscan={10}
         increaseViewportBy={100}
         alignToBottom={false}
         rangeChanged={handleRangeChangedCb}

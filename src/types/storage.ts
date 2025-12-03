@@ -3,8 +3,16 @@
  * 定义数据存储层的接口和类型
  */
 
-import type { Book } from './book';
+import type { Book, ChapterMetadata } from './book';
 import type { ReadingSettings } from './reading';
+import type { Block } from './block';
+
+// 存储的书籍内容格式
+export interface StoredBookContent {
+  __type: 'blocks';
+  blocks: Block[]; // 扁平化的内容 blocks 数组
+  chapters?: ChapterMetadata[]; // 章节元数据（用于章节导航）
+}
 
 // 存储服务接口
 export interface StorageService {

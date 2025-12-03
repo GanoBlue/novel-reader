@@ -234,8 +234,12 @@ export function BookPage({ pageType }: BookPageProps) {
         addBook(newBook);
 
         try {
-          const blocks = await parseEpubFileToBlocks(file as File);
-          const payload = JSON.stringify({ __type: 'blocks', blocks });
+          const parsedContent = await parseEpubFileToBlocks(file as File);
+          const payload = JSON.stringify({
+            __type: 'blocks',
+            blocks: parsedContent.blocks,
+            chapters: parsedContent.chapters,
+          });
           await storage.saveBookContent(newBook.id, payload);
         } catch (e) {
           console.error(e);

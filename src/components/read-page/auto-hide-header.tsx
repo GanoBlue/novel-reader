@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
-import { Home, Settings } from 'lucide-react';
+import { Home, Settings, BookOpen } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { InteractiveProgress } from '@/components/ui/interactive-progress';
@@ -21,6 +21,9 @@ interface AutoHideHeaderProps {
   // 进度相关
   progress: number;
   onProgressChange: (progress: number) => void;
+  // 章节导航相关
+  onOpenChapterNav?: () => void;
+  hasChapters?: boolean;
 }
 
 export const AutoHideHeader: React.FC<AutoHideHeaderProps> = ({
@@ -32,6 +35,8 @@ export const AutoHideHeader: React.FC<AutoHideHeaderProps> = ({
   onSettingsChange,
   progress,
   onProgressChange,
+  onOpenChapterNav,
+  hasChapters = false,
 }) => {
   const [isVisible, setIsVisible] = useState(true);
   const [hasShownInitially, setHasShownInitially] = useState(false);
@@ -157,21 +162,21 @@ export const AutoHideHeader: React.FC<AutoHideHeaderProps> = ({
   return (
     <>
       <div className={headerClassName} data-header>
-        <div className="flex items-center px-4 py-2">
-          {/* 左侧：返回按钮和书籍信息 - 按内容自适应 */}
-          <div className="flex items-center space-x-4">
-            <Button variant="ghost" size="sm" onClick={onNavigateHome}>
+        <div className="flex items-center px-2 sm:px-4 py-2 gap-2">
+          {/* 左侧：返回按钮和书籍信息 */}
+          <div className="flex items-center gap-2 min-w-0 flex-shrink">
+            <Button variant="ghost" size="sm" onClick={onNavigateHome} className="flex-shrink-0">
               <Home className="h-4 w-4" />
             </Button>
-            <div>
-              <h1 className="font-semibold text-sm truncate max-w-xs">{book.title}</h1>
-              <p className="text-xs text-muted-foreground truncate max-w-xs">{book.author}</p>
+            <div className="min-w-0 hidden sm:block">
+              <h1 className="font-semibold text-sm truncate max-w-[200px]">{book.title}</h1>
+              <p className="text-xs text-muted-foreground truncate max-w-[200px]">{book.author}</p>
             </div>
           </div>
 
-          {/* 中间：进度条和数字标签 - 进度条自动宽度 */}
-          <div className="flex items-center space-x-3 flex-1 mx-4">
-            <div className="flex-1">
+          {/* 中间：进度条和数字标签 */}
+          <div className="flex items-center gap-2 flex-1 min-w-0">
+            <div className="flex-1 min-w-[60px]">
               <InteractiveProgress
                 value={progress}
                 onValueChange={onProgressChange}
@@ -179,8 +184,8 @@ export const AutoHideHeader: React.FC<AutoHideHeaderProps> = ({
               />
             </div>
 
-            {/* 可编辑的进度数字 - 按内容自适应，足够容纳两位小数 */}
-            <div className="text-center">
+            {/* 可编辑的进度数字 */}
+            <div className="flex-shrink-0">
               {isEditingProgress ? (
                 <Input
                   ref={progressInputRef}
@@ -192,14 +197,14 @@ export const AutoHideHeader: React.FC<AutoHideHeaderProps> = ({
                   onChange={(e) => setEditProgressValue(e.target.value)}
                   onBlur={handleProgressSubmit}
                   onKeyDown={handleProgressKeyDown}
-                  className="h-6 text-xs text-center w-16 [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                  className="h-6 text-xs text-center w-14 sm:w-16 [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                   placeholder="0.00"
                 />
               ) : (
                 <Tooltip>
                   <TooltipTrigger asChild>
                     <span
-                      className="text-xs text-muted-foreground cursor-pointer hover:text-foreground transition-colors px-1 py-0.5 rounded hover:bg-muted/50"
+                      className="text-xs text-muted-foreground cursor-pointer hover:text-foreground transition-colors px-1 py-0.5 rounded hover:bg-muted/50 whitespace-nowrap"
                       onClick={handleProgressClick}
                     >
                       {progress.toFixed(2)}%
@@ -211,8 +216,13 @@ export const AutoHideHeader: React.FC<AutoHideHeaderProps> = ({
             </div>
           </div>
 
-          {/* 右侧：设置按钮 - 按内容自适应 */}
-          <div className="flex items-center">
+          {/* 右侧：章节导航和设置按钮 */}
+          <div className="flex items-center gap-1 flex-shrink-0">
+            {hasChapters && onOpenChapterNav && (
+              <Button variant="ghost" size="sm" onClick={onOpenChapterNav}>
+                <BookOpen className="h-4 w-4" />
+              </Button>
+            )}
             <Button variant="ghost" size="sm" onClick={onSettingsToggle}>
               <Settings className="h-4 w-4" />
             </Button>

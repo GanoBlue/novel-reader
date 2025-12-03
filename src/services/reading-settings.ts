@@ -13,7 +13,7 @@ export const defaultReadingSettings: ReadingSettings = {
   theme: 'light',
   autoScroll: false,
   autoScrollSpeed: 1,
-  fontFamily: 'system-ui',
+  fontFamily: 'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
   textAlign: 'left',
   paddingHorizontal: 5,
 };
@@ -120,17 +120,110 @@ export const generateThemeStyles = (settings: ReadingSettings): React.CSSPropert
   }
 };
 
-// 字体选项
+// 字体选项（优先使用系统字体，Web Fonts 按需加载）
 export const fontOptions = [
-  { value: 'system-ui', label: '系统默认' },
-  { value: 'Georgia', label: 'Georgia' },
-  { value: 'Times New Roman', label: 'Times New Roman' },
-  { value: 'Arial', label: 'Arial' },
-  { value: 'Helvetica', label: 'Helvetica' },
-  { value: 'PingFang SC', label: '苹方' },
-  { value: 'Microsoft YaHei', label: '微软雅黑' },
-  { value: 'SimSun', label: '宋体' },
-  { value: 'SimHei', label: '黑体' },
+  {
+    value: 'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
+    label: '系统默认',
+    needsLoad: false,
+  },
+  {
+    value: '"PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "微软雅黑", sans-serif',
+    label: '苹方/雅黑',
+    needsLoad: false,
+  },
+  {
+    value: '"SimSun", "宋体", serif',
+    label: '宋体',
+    needsLoad: false,
+  },
+  {
+    value: '"SimHei", "黑体", sans-serif',
+    label: '黑体',
+    needsLoad: false,
+  },
+  {
+    value: 'Georgia, "Times New Roman", serif',
+    label: 'Georgia',
+    needsLoad: false,
+  },
+  {
+    value: 'Arial, Helvetica, sans-serif',
+    label: 'Arial',
+    needsLoad: false,
+  },
+  // 在线字体 - 中文
+  {
+    value: '"Noto Sans SC", "PingFang SC", "Microsoft YaHei", sans-serif',
+    label: '思源黑体',
+    needsLoad: true,
+  },
+  {
+    value: '"Noto Serif SC", "Songti SC", "SimSun", serif',
+    label: '思源宋体',
+    needsLoad: true,
+  },
+  {
+    value: '"Ma Shan Zheng", cursive',
+    label: '马善政楷体',
+    needsLoad: true,
+  },
+  {
+    value: '"ZCOOL XiaoWei", serif',
+    label: '站酷小薇体',
+    needsLoad: true,
+  },
+  {
+    value: '"ZCOOL QingKe HuangYou", cursive',
+    label: '站酷庆科黄油体',
+    needsLoad: true,
+  },
+  {
+    value: '"Long Cang", cursive',
+    label: '龙藏体',
+    needsLoad: true,
+  },
+  {
+    value: '"Liu Jian Mao Cao", cursive',
+    label: '刘建毛草体',
+    needsLoad: true,
+  },
+  {
+    value: '"Zhi Mang Xing", cursive',
+    label: '志莽行书',
+    needsLoad: true,
+  },
+  // 在线字体 - 英文
+  {
+    value: '"Merriweather", serif',
+    label: 'Merriweather',
+    needsLoad: true,
+  },
+  {
+    value: '"Lora", serif',
+    label: 'Lora',
+    needsLoad: true,
+  },
+  {
+    value: '"Crimson Text", serif',
+    label: 'Crimson Text',
+    needsLoad: true,
+  },
+  {
+    value: '"Playfair Display", serif',
+    label: 'Playfair Display',
+    needsLoad: true,
+  },
+  {
+    value: '"EB Garamond", serif',
+    label: 'EB Garamond',
+    needsLoad: true,
+  },
+  {
+    value: '"Libre Baskerville", serif',
+    label: 'Libre Baskerville',
+    needsLoad: true,
+  },
 ];
 
 // 主题选项
