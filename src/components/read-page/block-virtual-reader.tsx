@@ -62,6 +62,11 @@ const BlockVirtualReader = forwardRef<BlockVirtualReaderRef, BlockVirtualReaderP
       [onRangeChanged],
     );
 
+    const computeItemKey = useCallback(
+      (index: number) => blocks[index]?.id || `block-${index}`,
+      [blocks],
+    );
+
     const renderBlock = useCallback(
       (index: number) => {
         const block = blocks[index];
@@ -72,12 +77,14 @@ const BlockVirtualReader = forwardRef<BlockVirtualReaderRef, BlockVirtualReaderP
             return (
               <div className="reading-content">
                 <p
-                  className="mb-4 whitespace-pre-wrap"
+                  className="whitespace-pre-wrap"
                   style={{
                     fontSize: `${settings.fontSize}px`,
                     lineHeight: settings.lineHeight,
                     textAlign: settings.textAlign,
-                    minHeight: `${settings.fontSize * settings.lineHeight}px`,
+                    paddingTop: '0.5rem',
+                    paddingBottom: '0.5rem',
+                    minHeight: `${(settings.fontSize || 16) * (settings.lineHeight || 1.5)}px`,
                   }}
                 >
                   {block.text || '\u00A0'}
@@ -152,10 +159,11 @@ const BlockVirtualReader = forwardRef<BlockVirtualReaderRef, BlockVirtualReaderP
         className="[&::-webkit-scrollbar]:hidden"
         totalCount={blocks.length}
         itemContent={renderBlock}
-        // 使用可变高度模式，不设置 fixedItemHeight
-        // Virtuoso 会自动测量每个项目的高度
-        overscan={10}
-        increaseViewportBy={100}
+        computeItemKey={computeItemKey}
+        defaultItemHeight={(settings.fontSize || 16) * (settings.lineHeight || 1.5)}
+        // 较小的 overscan，减少累积误差
+        overscan={300}
+        increaseViewportBy={40}
         alignToBottom={false}
         rangeChanged={handleRangeChangedCb}
         initialTopMostItemIndex={Math.max(0, currentIndex)}

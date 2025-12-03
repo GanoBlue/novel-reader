@@ -57,10 +57,10 @@ export default function BookCard({
         onClick={onRead}
       >
         <CardContent className="pl-4 pr-4 -mb-2">
-          {/* 右上角操作按钮 */}
-          <div className="absolute top-2 right-2 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+          {/* 右上角操作按钮 - 移动端常驻，桌面端 hover 显示 */}
+          <div className="absolute top-2 right-2 flex gap-2 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity">
             <BookFavorite isFavorite={currentIsFavorite} onFavorite={onFavorite} variant="button" />
-            {/* 删除在收藏左边（仅 hover 显示） */}
+            {/* 删除按钮 */}
             <button
               className="inline-flex items-center justify-center w-8 h-8 rounded-md bg-destructive/10 hover:bg-destructive/20 text-destructive"
               onClick={(e) => {

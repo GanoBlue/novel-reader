@@ -42,31 +42,25 @@ export function BookFavorite({
     );
   }
 
-  // 网格模式：悬停显示收藏按钮
+  // 网格模式：移动端常驻，桌面端悬停显示
   return (
-    <div
+    <Button
+      variant="ghost"
+      size="sm"
       className={cn(
-        'flex space-x-1 opacity-0 group-hover:opacity-100 transition-opacity',
+        'h-8 w-8 p-0 cursor-pointer',
+        isFavorite
+          ? 'text-destructive hover:text-destructive/80'
+          : 'text-muted-foreground hover:text-destructive',
         className,
       )}
+      onClick={(e) => {
+        e.stopPropagation();
+        onFavorite?.();
+      }}
     >
-      <Button
-        variant="ghost"
-        size="sm"
-        className={cn(
-          'h-8 w-8 p-0 cursor-pointer',
-          isFavorite
-            ? 'text-destructive hover:text-destructive/80'
-            : 'text-muted-foreground hover:text-destructive',
-        )}
-        onClick={(e) => {
-          e.stopPropagation();
-          onFavorite?.();
-        }}
-      >
-        <Heart className={cn('h-4 w-4', isFavorite && 'fill-current')} />
-      </Button>
-    </div>
+      <Heart className={cn('h-4 w-4', isFavorite && 'fill-current')} />
+    </Button>
   );
 }
 

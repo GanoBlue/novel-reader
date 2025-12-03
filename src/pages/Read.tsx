@@ -4,7 +4,6 @@ import { useBookStore } from '@/store/book-store';
 import storage from '@/services/storage';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
-import VirtualReader, { VirtualReaderRef } from '@/components/read-page/virtual-reader';
 import BlockVirtualReader, {
   BlockVirtualReaderRef,
 } from '@/components/read-page/block-virtual-reader';
@@ -25,8 +24,7 @@ export default function Read() {
 
   // 状态管理
   const [book, setBook] = useState<any>(null);
-  const [paragraphs, setParagraphs] = useState<string[]>([]); // 文本段落
-  const [blocks, setBlocks] = useState<Block[] | null>(null); // Block 列表（EPUB等）
+  const [blocks, setBlocks] = useState<Block[]>([]); // Block 列表（统一格式）
   const [chapters, setChapters] = useState<ChapterMetadata[]>([]); // 章节元数据
   const [currentIndex, setCurrentIndex] = useState<number>(0); // 当前在页面中央显示的文字的索引
   const [isLoading, setIsLoading] = useState<boolean>(true);
@@ -36,8 +34,7 @@ export default function Read() {
   const [currentChapterIndex, setCurrentChapterIndex] = useState<number>(0); // 当前章节索引
 
   // 引用
-  const virtualReaderRef = useRef<VirtualReaderRef>(null);
-  const blockReaderRef = useRef<BlockVirtualReaderRef>(null);
+  const readerRef = useRef<BlockVirtualReaderRef>(null);
 
   // 加载书籍数据
   const loadBookData = useCallback(async () => {
@@ -68,16 +65,15 @@ export default function Read() {
               setChapters(parsed.chapters as ChapterMetadata[]);
             }
           } else {
+            // 纯文本，转换为 Block 格式
             const lines = String(bookContent).split('\n');
-            setParagraphs(lines);
-            // 统一为 Block 渲染
             setBlocks(
               lines.map((t, i) => ({ id: `p-${i}`, type: 'paragraph', text: t })) as Block[],
             );
           }
         } catch {
+          // 解析失败，当作纯文本处理
           const lines = String(bookContent).split('\n');
-          setParagraphs(lines);
           setBlocks(lines.map((t, i) => ({ id: `p-${i}`, type: 'paragraph', text: t })) as Block[]);
         }
 
@@ -104,16 +100,14 @@ export default function Read() {
   // 保存阅读进度（使用index）
   const saveProgress = useCallback(
     async (index: number) => {
-      if (!book || !bookId) return;
+      if (!book || !bookId || !blocks.length) return;
 
-      // 计算内容总长度：优先使用 blocks，否则使用 paragraphs
-      const contentLength = blocks ? blocks.length : paragraphs.length;
-      if (!contentLength || index <= 0) return;
+      if (index <= 0) return;
 
       // 直接使用index保存进度
-      await readingProgressService.update(Number(bookId), index, contentLength);
+      await readingProgressService.update(Number(bookId), index, blocks.length);
     },
-    [book, bookId, blocks, paragraphs.length],
+    [book, bookId, blocks.length],
   );
 
   // 创建防抖保存函数
@@ -199,24 +193,17 @@ export default function Read() {
 
   // 计算阅读进度（保留小数点后两位）
   const getProgress = useCallback(() => {
-    const total = blocks ? blocks.length : paragraphs.length;
-    if (!total) return 0;
-    return parseFloat(((currentIndex / total) * 100).toFixed(2));
-  }, [currentIndex, paragraphs.length, blocks]);
+    if (!blocks.length) return 0;
+    return parseFloat(((currentIndex / blocks.length) * 100).toFixed(2));
+  }, [currentIndex, blocks.length]);
 
   // 处理进度条值变化
   const handleProgressChange = useCallback(
     (progress: number) => {
-      const total = blocks ? blocks.length : paragraphs.length;
-      if (!total) return;
-
-      if (blocks) {
-        blockReaderRef.current?.scrollToProgress(progress);
-      } else {
-        virtualReaderRef.current?.scrollToProgress(progress);
-      }
+      if (!blocks.length) return;
+      readerRef.current?.scrollToProgress(progress);
     },
-    [paragraphs.length, blocks],
+    [blocks.length],
   );
 
   // 加载设置
@@ -255,8 +242,7 @@ export default function Read() {
       const targetIndex = chapter.blockStartIndex;
 
       // 验证目标索引
-      const totalBlocks = blocks ? blocks.length : paragraphs.length;
-      if (targetIndex < 0 || targetIndex >= totalBlocks) {
+      if (targetIndex < 0 || targetIndex >= blocks.length) {
         console.warn(`[ChapterNav] 无效的目标索引: ${targetIndex}`);
         toast.error('章节位置无效');
         return;
@@ -269,11 +255,7 @@ export default function Read() {
 
       // 跳转到章节起始位置
       try {
-        if (blocks) {
-          blockReaderRef.current?.scrollToIndex(targetIndex);
-        } else {
-          virtualReaderRef.current?.scrollToIndex(targetIndex);
-        }
+        readerRef.current?.scrollToIndex(targetIndex);
       } catch (err) {
         console.error('[ChapterNav] 跳转失败:', err);
         toast.error('跳转失败，请重试');
@@ -283,7 +265,7 @@ export default function Read() {
       // 关闭侧边栏
       setShowChapterNav(false);
     },
-    [chapters, blocks, paragraphs.length],
+    [chapters, blocks.length],
   );
 
   // 初始化
@@ -301,17 +283,16 @@ export default function Read() {
 
   // 保存进度并结束会话（提取公共逻辑）
   const saveProgressAndEndSession = useCallback(async () => {
-    if (!book || !bookId) return;
+    if (!book || !bookId || !blocks.length) return;
 
-    const contentLength = blocks ? blocks.length : paragraphs.length;
-    if (contentLength > 0 && currentIndex > 0) {
+    if (currentIndex > 0) {
       await readingProgressService
-        .update(Number(bookId), currentIndex, contentLength)
+        .update(Number(bookId), currentIndex, blocks.length)
         .catch(console.error);
     }
     // 结束阅读会话，计算并累加阅读时长
     await readingProgressService.endSession(Number(bookId)).catch(console.error);
-  }, [book, bookId, currentIndex, blocks, paragraphs.length]);
+  }, [book, bookId, currentIndex, blocks.length]);
 
   // 页面离开时保存进度并结束阅读会话
   useEffect(() => {
@@ -349,7 +330,7 @@ export default function Read() {
     );
   }
 
-  if (!book || (!blocks && !paragraphs.length)) {
+  if (!book || !blocks.length) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
@@ -377,27 +358,13 @@ export default function Read() {
       />
 
       <div className="w-full h-full" style={readingSettingsService.generateStyles(settings)}>
-        {blocks ? (
-          <BlockVirtualReader
-            ref={blockReaderRef}
-            blocks={blocks}
-            currentIndex={currentIndex}
-            settings={settings}
-            onRangeChanged={handleRangeChanged}
-          />
-        ) : paragraphs.length > 0 ? (
-          <VirtualReader
-            ref={virtualReaderRef}
-            paragraphs={paragraphs}
-            currentIndex={currentIndex}
-            settings={settings}
-            onRangeChanged={handleRangeChanged}
-          />
-        ) : (
-          <div className="flex items-center justify-center h-full">
-            <p className="text-muted-foreground">正在加载内容...</p>
-          </div>
-        )}
+        <BlockVirtualReader
+          ref={readerRef}
+          blocks={blocks}
+          currentIndex={currentIndex}
+          settings={settings}
+          onRangeChanged={handleRangeChanged}
+        />
       </div>
 
       {/* 章节导航侧边栏 */}

@@ -1,76 +1,49 @@
-# 小说阅读器 (Novel Reader)
+# 📚 小说阅读器
 
-一个现代化的Web小说阅读器应用，支持TXT和EPUB格式文件，提供优秀的阅读体验。
+一个简洁优雅的在线小说阅读器，让阅读回归纯粹。
 
-## ✨ 特性
+🌐 **立即体验**: [https://novel-reader-practice.pages.dev/](https://novel-reader-practice.pages.dev/)
 
-- 📚 **多格式支持** - 支持TXT和EPUB格式小说文件
-- 🎨 **多种主题** - 默认、护眼、夜间、绿色主题可选
-- 📖 **智能阅读** - 自动章节识别、阅读进度保存
-- 🔍 **全文搜索** - 支持按标题、作者搜索
-- 💾 **本地存储** - 数据完全本地存储，保护隐私
-- 📱 **响应式设计** - 适配各种屏幕尺寸
+## ✨ 功能特性
 
-## 🛠️ 技术栈
+### 📖 阅读体验
 
-- **React 19** + **TypeScript** - 前端框架
-- **Vite** - 构建工具
-- **Tailwind CSS** + **shadcn/ui** - UI框架
-- **React Router v7** - 路由管理
+- **多格式支持** - TXT 和 EPUB 格式小说
+- **智能章节** - 自动识别章节，快速跳转
+- **阅读进度** - 自动保存，随时继续
+- **虚拟滚动** - 流畅阅读超大文件
 
-## 📦 第三方库集成
+### 🎨 个性化设置
 
-### 工具函数库 (src/lib/utils.ts)
+- **多种主题** - 默认、护眼、夜间、绿色主题
+- **字体调节** - 大小、行高、对齐方式
+- **自定义字体** - 支持多种中英文字体
+- **背景颜色** - 自由选择舒适的阅读背景
 
-已集成以下高质量的第三方库替代自实现功能：
+### 💾 数据管理
 
-#### 🔧 Lodash
+- **本地存储** - 所有数据保存在浏览器，保护隐私
+- **书籍管理** - 导入、删除、搜索书籍
+- **收藏功能** - 标记喜欢的书籍
+- **阅读统计** - 记录阅读时长和进度
 
-- **防抖/节流函数** - 性能更好，功能更稳定
-- **数字格式化** - 精确的四舍五入
-- **数组/对象操作** - 丰富的工具函数
+### 📱 跨平台
 
-```typescript
-import { debounce, throttle } from '@/lib/utils'
+- **响应式设计** - 手机、平板、电脑都能用
+- **PWA 支持** - 可安装到桌面，离线使用
 
-// 防抖搜索
-const debouncedSearch = debounce(handleSearch, 300)
+## 🚀 快速开始
 
-// 节流滚动
-const throttledScroll = throttle(handleScroll, 100)
-```
+### 在线使用
 
-#### 📅 Date-fns
+直接访问 [https://novel-reader-practice.pages.dev/](https://novel-reader-practice.pages.dev/)，无需安装。
 
-- **相对时间格式化** - 智能显示"刚刚"、"5分钟前"等
-- **日期格式化** - 统一的日期显示格式
-- **中文本地化** - 完整的中文本地化支持
-
-```typescript
-import { formatRelativeTime } from '@/lib/utils'
-
-// 显示相对时间
-const timeAgo = formatRelativeTime(new Date())
-```
-
-#### 💾 IDB (IndexedDB封装)
-
-- **增强存储服务** - 更大的存储空间
-- **数据库索引** - 支持按作者、格式、日期查询
-- **自动降级** - IndexedDB不可用时自动降级到localStorage
-- **数据完整性** - 事务支持和错误处理
-
-```typescript
-import { storage } from '@/lib/utils'
-
-// 异步存储操作
-await storage.saveBook(bookData)
-await storage.getBooks()
-```
-
-## 🚀 开发
+### 本地运行
 
 ```bash
+# 克隆项目
+git clone <repository-url>
+
 # 安装依赖
 pnpm install
 
@@ -79,42 +52,27 @@ pnpm dev
 
 # 构建生产版本
 pnpm build
-
-# 预览生产版本
-pnpm preview
 ```
 
-## 📁 项目结构
+## 📖 使用指南
 
-```
-src/
-├── components/     # React组件
-├── pages/         # 页面组件
-├── lib/           # 工具库和配置
-│   └── utils.ts   # 工具函数库（已优化）
-├── types/         # TypeScript类型定义
-├── services/      # 业务服务
-└── router/        # 路由配置
-```
-
-## 📋 开发计划
-
-- ✅ 类型定义文件
-- ✅ 工具函数库（已使用第三方库优化）
-- ✅ 存储服务（已增强为IndexedDB主）
-- 🔄 路由配置
-- 🔄 布局组件
-- 🔄 页面组件
-- 🔄 文件解析器
-- 🔄 阅读器功能
+1. **导入书籍** - 点击"导入书籍"按钮，选择 TXT 或 EPUB 文件
+2. **开始阅读** - 在书架中点击书籍封面即可开始阅读
+3. **调整设置** - 点击右上角设置图标，自定义阅读体验
+4. **章节跳转** - 点击左上角章节图标，快速跳转到任意章节
 
 ## 🔒 隐私保护
 
-- 所有数据本地存储
-- 不上传用户文件到服务器
-- 保护用户隐私和数据安全
+- ✅ 所有数据存储在本地浏览器
+- ✅ 不上传任何文件到服务器
+- ✅ 不收集用户信息
+- ✅ 完全离线可用
 
 ## 📄 许可证
 
 MIT License
+
+---
+
+Made with ❤️ for book lovers
 
